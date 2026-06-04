@@ -35,35 +35,22 @@ export default function TraderForm({ remaining }: { remaining: number }) {
 
       <div className="grid grid-cols-2 gap-3">
         {orderType === "pending" ? (
-          <Field
-            name="entry_price"
-            label="entry"
-            type="number"
-            step="0.01"
-            required
-          />
+          <Field name="entry_price" label="entry" type="number" step="0.01" required />
         ) : (
           <div className="space-y-1">
-            <span className="text-xs uppercase tracking-wider text-muted">
-              entry
-            </span>
+            <span className="text-xs uppercase tracking-wider text-muted">entry</span>
             <p className="border border-border bg-background px-3 py-2 font-mono text-sm text-muted">
               live price (locked)
             </p>
           </div>
         )}
-        <div />
+        <Field name="stop_loss" label="stop loss" type="number" step="0.01" required />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Field name="stop_loss" label="stop loss" type="number" step="0.01" required />
-        <Field
-          name="take_profit"
-          label="take profit"
-          type="number"
-          step="0.01"
-          required
-        />
+      <div className="grid grid-cols-3 gap-3">
+        <Field name="tp1" label="tp1" type="number" step="0.01" required />
+        <Field name="tp2" label="tp2 (opt)" type="number" step="0.01" />
+        <Field name="tp3" label="tp3 (opt)" type="number" step="0.01" />
       </div>
 
       <Field name="note" label="note" placeholder="optional" />
@@ -80,8 +67,9 @@ export default function TraderForm({ remaining }: { remaining: number }) {
         {exhausted ? "daily limit reached" : pending ? "posting..." : "post"}
       </button>
       <p className="text-[10px] leading-relaxed text-muted">
-        market entry is fixed to the live price server-side. once posted, a
-        signal is locked and can only be closed by the verification engine.
+        market entry is fixed to the live price server-side. tp1 decides the
+        outcome (win); tp2/tp3 are extra targets drawn on the chart. once posted,
+        a signal is locked and only the engine can close it.
       </p>
     </form>
   );

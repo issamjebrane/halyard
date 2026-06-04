@@ -27,24 +27,34 @@ export async function createSignal(
   if (orderType !== "market" && orderType !== "pending")
     return { error: "order type must be market or pending" };
 
-  const slRaw = String(formData.get("stop_loss") ?? "");
-  const tpRaw = String(formData.get("take_profit") ?? "");
-  const entryRaw = String(formData.get("entry_price") ?? "");
+  // empty -> null; otherwise Number()
+  const num = (k: string): number | null => {
+    const s = String(formData.get(k) ?? "").trim();
+    return s === "" ? null : Number(s);
+  };
 
-  const stop_loss = slRaw === "" ? NaN : Number(slRaw);
-  const take_profit = tpRaw === "" ? NaN : Number(tpRaw);
-  if (!Number.isFinite(stop_loss) || !Number.isFinite(take_profit))
-    return { error: "stop loss and take profit must be numbers" };
+  const stop_loss = num("stop_loss");
+  const tp1 = num("tp1");
+  if (stop_loss === null || !Number.isFinite(stop_loss))
+    return { error: "stop loss must be a number" };
+  if (tp1 === null || !Number.isFinite(tp1))
+    return { error: "TP1 is required" };
+
+  const tp2 = num("tp2");
+  const tp3 = num("tp3");
+  if (tp2 !== null && !Number.isFinite(tp2))
+    return { error: "TP2 must be a number" };
+  if (tp3 !== null && !Number.isFinite(tp3))
+    return { error: "TP3 must be a number" };
 
   let entry_in: number | null = null;
   if (orderType === "pending") {
-    entry_in = entryRaw === "" ? NaN : Number(entryRaw);
-    if (!Number.isFinite(entry_in))
+    entry_in = num("entry_price");
+    if (entry_in === null || !Number.isFinite(entry_in))
       return { error: "pending orders need an entry price" };
   }
 
-  // Trusted live price (server-side). Fall back to the cached price if the
-  // upstream feed is briefly unavailable.
+  // Trusted live price (server-side); fall back to the cached price.
   let live = await fetchLiveGold();
   if (live === null) {
     const { data } = await supabaseService()
@@ -60,7 +70,9 @@ export async function createSignal(
     p_direction: direction,
     p_order_type: orderType,
     p_stop_loss: stop_loss,
-    p_take_profit: take_profit,
+    p_tp1: tp1,
+    p_tp2: tp2,
+    p_tp3: tp3,
     p_entry_in: entry_in,
     p_live: live,
     p_note: note,

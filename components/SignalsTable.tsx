@@ -30,7 +30,9 @@ export default function SignalsTable({
             <Th>type</Th>
             <Th>entry</Th>
             <Th>sl</Th>
-            <Th>tp</Th>
+            <Th>tp1</Th>
+            <Th>tp2</Th>
+            <Th>tp3</Th>
             <Th>status</Th>
             <Th>R</Th>
             <Th>pips</Th>
@@ -48,7 +50,9 @@ export default function SignalsTable({
               <Td className="text-muted">{s.order_type}</Td>
               <Td>{fmt(s.entry_price)}</Td>
               <Td>{fmt(s.stop_loss)}</Td>
-              <Td>{fmt(s.take_profit)}</Td>
+              <Td>{fmt(s.tp1)}</Td>
+              <Td className="text-muted">{fmt(s.tp2)}</Td>
+              <Td className="text-muted">{fmt(s.tp3)}</Td>
               <Td className={STATUS_CLASS[s.status] ?? ""}>{s.status}</Td>
               <Td
                 className={

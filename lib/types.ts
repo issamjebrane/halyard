@@ -20,7 +20,9 @@ export type Signal = {
   order_type: OrderType;
   entry_price: number;
   stop_loss: number;
-  take_profit: number;
+  tp1: number;
+  tp2: number | null;
+  tp3: number | null;
   status: SignalStatus;
   market_price_at_create: number;
   last_seen_price: number;

@@ -5,6 +5,7 @@ import type { Signal } from "@/lib/types";
 import { DAILY_SIGNAL_LIMIT } from "@/lib/constants";
 import SignalsTable from "@/components/SignalsTable";
 import PriceTicker from "@/components/PriceTicker";
+import GoldChart from "@/components/GoldChart";
 import TimezoneSync from "@/components/TimezoneSync";
 import TraderForm from "./form";
 
@@ -40,6 +41,7 @@ export default async function TraderPage() {
     <div className="space-y-8">
       <TimezoneSync current={profile.timezone} />
       <PriceTicker initial={(pc?.price as number | undefined) ?? null} />
+      <GoldChart signal={signals[0] ?? null} />
       <TraderForm remaining={remaining} />
       <section className="space-y-3">
         <h2 className="font-mono text-xs uppercase tracking-wider text-muted">

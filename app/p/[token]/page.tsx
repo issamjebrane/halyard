@@ -5,6 +5,7 @@ import type { Signal } from "@/lib/types";
 import TrustPanel from "@/components/TrustPanel";
 import EquityChart from "@/components/EquityChart";
 import SignalsTable from "@/components/SignalsTable";
+import GoldChart from "@/components/GoldChart";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +56,12 @@ export default async function PublicReport({
           equity (R)
         </h2>
         <EquityChart equity={equity} />
+      </section>
+      <section className="space-y-3">
+        <h2 className="font-mono text-xs uppercase tracking-wider text-muted">
+          live market
+        </h2>
+        <GoldChart signal={signals[0] ?? null} />
       </section>
       <section className="space-y-3">
         <h2 className="font-mono text-xs uppercase tracking-wider text-muted">
