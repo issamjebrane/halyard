@@ -8,6 +8,7 @@ export type Profile = {
   username: string;
   role: Role;
   locale: string;
+  timezone: string;
   created_at: string;
 };
 

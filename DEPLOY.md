@@ -31,8 +31,9 @@ supabase db push                            # applies supabase/migrations/*
 supabase functions deploy verify --no-verify-jwt
 ```
 `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected automatically in
-hosted functions — no secrets to set. (Optional: `supabase secrets set
-GOLD_PRICE_URL=https://api.gold-api.com/price/XAU`.)
+hosted functions. The verifier uses the keyless Binance public ticker, so no
+secret is required; override the symbol with
+`supabase secrets set BINANCE_PRICE_URL=...` if needed.
 
 ### 4. Schedule the verifier every minute
 Supabase Dashboard → **SQL Editor**, paste `supabase/cron.sql`, replace
@@ -76,7 +77,9 @@ gh repo create halyard --private --source=. --push   # or create on github.com +
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://<REF>.supabase.co` |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | the `anon` key |
 | `SUPABASE_SERVICE_ROLE_KEY` | the `service_role` key |
-| `GOLD_PRICE_URL` | `https://api.gold-api.com/price/XAU` |
+| `BINANCE_PRICE_URL` | `https://data-api.binance.vision/api/v3/ticker/price?symbol=PAXGUSDT` |
+| `BINANCE_API_KEY` | your Binance key (server-side; for the bot side) |
+| `BINANCE_API_SECRET` | your Binance secret (server-side; for the bot side) |
 
 Add them for **Production** (and Preview if you want). Then **Deploy**.
 
@@ -104,8 +107,9 @@ select * from public.price_cache;     -- price + fetched_at should be recent
 ## Notes / hardening
 - The 5/day cap, anti-cheat entry, and TP/SL verification are all enforced in
   Postgres — they hold in production exactly as locally.
-- The daily cap resets at **UTC midnight**. To reset at a local midnight, adjust
-  the `date_trunc(... at time zone 'utc')` in the latest migration.
+- The daily cap resets at the **trader's local midnight**. The browser timezone
+  is auto-detected and stored on the profile (no input needed); it falls back to
+  UTC until detected.
 - Free tier: Supabase pauses a project after ~1 week of inactivity; the cron job
   keeps it active. Vercel Hobby cron can't run every minute, which is why the
   verifier lives in Supabase (pg_cron), not Vercel.

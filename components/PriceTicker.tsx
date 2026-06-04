@@ -36,7 +36,7 @@ export default function PriceTicker({ initial }: { initial: number | null }) {
       </span>
       {stale && <span className="text-xs text-sell">stale</span>}
       <span className="ml-auto text-[10px] uppercase tracking-wider text-muted">
-        spot · gold-api
+        binance · paxg
       </span>
     </div>
   );

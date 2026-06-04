@@ -5,6 +5,7 @@ import type { Signal } from "@/lib/types";
 import { DAILY_SIGNAL_LIMIT } from "@/lib/constants";
 import SignalsTable from "@/components/SignalsTable";
 import PriceTicker from "@/components/PriceTicker";
+import TimezoneSync from "@/components/TimezoneSync";
 import TraderForm from "./form";
 
 export const dynamic = "force-dynamic";
@@ -28,16 +29,16 @@ export default async function TraderPage() {
 
   const signals = (data ?? []) as Signal[];
 
-  // Signals posted since UTC midnight count against the daily cap.
-  const dayStart = new Date();
-  dayStart.setUTCHours(0, 0, 0, 0);
-  const usedToday = signals.filter(
-    (s) => new Date(s.created_at) >= dayStart,
-  ).length;
-  const remaining = Math.max(0, DAILY_SIGNAL_LIMIT - usedToday);
+  // Today's post count in the trader's LOCAL day (computed server-side, tz-aware).
+  const { data: usedToday } = await sb.rpc("signals_used_today");
+  const remaining = Math.max(
+    0,
+    DAILY_SIGNAL_LIMIT - ((usedToday as number | null) ?? 0),
+  );
 
   return (
     <div className="space-y-8">
+      <TimezoneSync current={profile.timezone} />
       <PriceTicker initial={(pc?.price as number | undefined) ?? null} />
       <TraderForm remaining={remaining} />
       <section className="space-y-3">

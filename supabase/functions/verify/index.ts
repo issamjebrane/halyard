@@ -1,10 +1,10 @@
 // Halyard verifier — the serverless analog of market.poll_once().
-// Fetches the spot gold price, caches it, and runs the verification engine.
-// Scheduled to run every minute via pg_cron + pg_net (see supabase/cron.sql).
+// Fetches the spot gold price (Binance PAXGUSDT), caches it, and runs the
+// verification engine. Scheduled every minute via pg_cron + pg_net (cron.sql).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-const GOLD_URL = Deno.env.get("GOLD_PRICE_URL") ??
-  "https://api.gold-api.com/price/XAU";
+const PRICE_URL = Deno.env.get("BINANCE_PRICE_URL") ??
+  "https://data-api.binance.vision/api/v3/ticker/price?symbol=PAXGUSDT";
 
 Deno.serve(async () => {
   const url = Deno.env.get("SUPABASE_URL")!;
@@ -13,20 +13,16 @@ Deno.serve(async () => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  // 1) Read the spot price (no key required).
+  // 1) Read the spot price (Binance public ticker, no key).
   let price: number | null = null;
-  let sourceTime = "";
   try {
-    const res = await fetch(GOLD_URL, {
+    const res = await fetch(PRICE_URL, {
       headers: { "User-Agent": "halyard-verifier" },
       signal: AbortSignal.timeout(12000),
     });
     const data = await res.json();
-    const p = Number(data?.price);
-    if (Number.isFinite(p) && p > 0) {
-      price = p;
-      sourceTime = data?.updatedAt ?? "";
-    }
+    const p = Number(data?.price); // { symbol, price }
+    if (Number.isFinite(p) && p > 0) price = p;
   } catch (_err) {
     price = null;
   }
@@ -39,7 +35,7 @@ Deno.serve(async () => {
   const { error: cacheErr } = await supabase.from("price_cache").upsert({
     id: 1,
     price,
-    source_time: sourceTime,
+    source_time: "",
     fetched_at: new Date().toISOString(),
   });
 
