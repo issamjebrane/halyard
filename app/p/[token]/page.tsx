@@ -6,6 +6,7 @@ import TrustPanel from "@/components/TrustPanel";
 import EquityChart from "@/components/EquityChart";
 import SignalsTable from "@/components/SignalsTable";
 import SignalTape from "@/components/SignalTape";
+import EngineTapeInfo from "@/components/EngineTapeInfo";
 import GoldChart from "@/components/GoldChart";
 
 export const dynamic = "force-dynamic";
@@ -77,8 +78,9 @@ export default async function PublicReport({
       </section>
       {featured && (
         <section className="space-y-3">
-          <h2 className="font-mono text-xs uppercase tracking-wider text-muted">
-            engine tape · #{featured.id}
+          <h2 className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted">
+            <span>engine tape · #{featured.id}</span>
+            <EngineTapeInfo />
           </h2>
           <SignalTape events={events} signalId={featured.id} />
         </section>

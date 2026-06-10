@@ -5,6 +5,7 @@ import type { Signal, SignalEvent } from "@/lib/types";
 import { DAILY_SIGNAL_LIMIT } from "@/lib/constants";
 import SignalsTable from "@/components/SignalsTable";
 import SignalTape from "@/components/SignalTape";
+import EngineTapeInfo from "@/components/EngineTapeInfo";
 import PriceTicker from "@/components/PriceTicker";
 import GoldChart from "@/components/GoldChart";
 import TimezoneSync from "@/components/TimezoneSync";
@@ -57,8 +58,9 @@ export default async function TraderPage() {
       <GoldChart signal={featured} />
       {featured && (
         <section className="space-y-3">
-          <h2 className="font-mono text-xs uppercase tracking-wider text-muted">
-            engine tape · #{featured.id}
+          <h2 className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted">
+            <span>engine tape · #{featured.id}</span>
+            <EngineTapeInfo />
           </h2>
           <SignalTape events={events} signalId={featured.id} />
         </section>

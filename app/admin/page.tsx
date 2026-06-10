@@ -11,6 +11,7 @@ import TrustPanel from "@/components/TrustPanel";
 import EquityChart from "@/components/EquityChart";
 import SignalsTable from "@/components/SignalsTable";
 import SignalTape from "@/components/SignalTape";
+import EngineTapeInfo from "@/components/EngineTapeInfo";
 import { regenerateShare } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -132,8 +133,9 @@ export default async function AdminPage() {
 
       {events.length > 0 && (
         <section className="space-y-3">
-          <h2 className="font-mono text-xs uppercase tracking-wider text-muted">
-            engine activity
+          <h2 className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted">
+            <span>engine activity</span>
+            <EngineTapeInfo />
           </h2>
           <SignalTape events={events} />
         </section>
