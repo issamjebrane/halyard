@@ -8,6 +8,7 @@ export default function TraderForm({ remaining }: { remaining: number }) {
   const [state, action, pending] = useActionState(createSignal, undefined);
   const [orderType, setOrderType] = useState("market");
   const exhausted = remaining <= 0;
+  const used = DAILY_SIGNAL_LIMIT - remaining;
 
   return (
     <form action={action} className="space-y-5 border border-border bg-surface p-5">
@@ -18,7 +19,7 @@ export default function TraderForm({ remaining }: { remaining: number }) {
         <span
           className={`font-mono text-xs ${exhausted ? "text-sell" : "text-muted"}`}
         >
-          {remaining} / {DAILY_SIGNAL_LIMIT} left today
+          {used} of {DAILY_SIGNAL_LIMIT} used today
         </span>
       </div>
 
