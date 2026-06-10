@@ -204,7 +204,8 @@ export default function GoldChart({ signal }: { signal?: Signal | null }) {
       const line = series.createPriceLine({
         price,
         color,
-        lineWidth: 1,
+        // A hit level reads brighter/solid; an untouched one stays thin + dashed.
+        lineWidth: solid ? 2 : 1,
         lineStyle: solid ? LineStyle.Solid : LineStyle.Dashed,
         axisLabelVisible: true,
         title,
@@ -213,10 +214,10 @@ export default function GoldChart({ signal }: { signal?: Signal | null }) {
     };
 
     add(signal.entry_price, ACCENT, `entry ${signal.direction}`, true);
-    add(signal.stop_loss, SELL, "SL");
-    add(signal.tp1, BUY, "TP1", true);
-    add(signal.tp2, BUY, "TP2");
-    add(signal.tp3, BUY, "TP3");
+    add(signal.stop_loss, SELL, signal.sl_hit_at ? "SL ✓" : "SL", signal.sl_hit_at != null);
+    add(signal.tp1, BUY, signal.tp1_hit_at ? "TP1 ✓" : "TP1", signal.tp1_hit_at != null);
+    add(signal.tp2, BUY, signal.tp2_hit_at ? "TP2 ✓" : "TP2", signal.tp2_hit_at != null);
+    add(signal.tp3, BUY, signal.tp3_hit_at ? "TP3 ✓" : "TP3", signal.tp3_hit_at != null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     signal?.id,
@@ -226,6 +227,10 @@ export default function GoldChart({ signal }: { signal?: Signal | null }) {
     signal?.tp1,
     signal?.tp2,
     signal?.tp3,
+    signal?.tp1_hit_at,
+    signal?.tp2_hit_at,
+    signal?.tp3_hit_at,
+    signal?.sl_hit_at,
   ]);
 
   return (

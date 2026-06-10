@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 import { supabaseService } from "@/lib/supabase/service";
 import { computeTrust, buildEquity } from "@/lib/metrics";
-import type { Signal } from "@/lib/types";
+import type { Signal, SignalEvent } from "@/lib/types";
 import TrustPanel from "@/components/TrustPanel";
 import EquityChart from "@/components/EquityChart";
 import SignalsTable from "@/components/SignalsTable";
+import SignalTape from "@/components/SignalTape";
 import GoldChart from "@/components/GoldChart";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +39,17 @@ export default async function PublicReport({
     trader_name: r.profiles?.username,
   }));
 
+  const featured = signals[0] ?? null;
+  let events: SignalEvent[] = [];
+  if (featured) {
+    const { data: ev } = await svc
+      .from("signal_events")
+      .select("*")
+      .eq("signal_id", featured.id)
+      .order("id", { ascending: true });
+    events = (ev ?? []) as SignalEvent[];
+  }
+
   const trust = computeTrust(signals);
   const equity = buildEquity(signals);
 
@@ -61,8 +73,16 @@ export default async function PublicReport({
         <h2 className="font-mono text-xs uppercase tracking-wider text-muted">
           live market
         </h2>
-        <GoldChart signal={signals[0] ?? null} />
+        <GoldChart signal={featured} />
       </section>
+      {featured && (
+        <section className="space-y-3">
+          <h2 className="font-mono text-xs uppercase tracking-wider text-muted">
+            engine tape · #{featured.id}
+          </h2>
+          <SignalTape events={events} signalId={featured.id} />
+        </section>
+      )}
       <section className="space-y-3">
         <h2 className="font-mono text-xs uppercase tracking-wider text-muted">
           signals

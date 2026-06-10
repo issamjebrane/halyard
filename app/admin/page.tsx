@@ -5,11 +5,12 @@ import { getProfile } from "@/lib/supabase/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getShareToken } from "@/lib/share";
 import { computeMetrics, computeTrust, buildEquity } from "@/lib/metrics";
-import type { Signal, Notification } from "@/lib/types";
+import type { Signal, Notification, SignalEvent } from "@/lib/types";
 import { fmtR, rel } from "@/lib/format";
 import TrustPanel from "@/components/TrustPanel";
 import EquityChart from "@/components/EquityChart";
 import SignalsTable from "@/components/SignalsTable";
+import SignalTape from "@/components/SignalTape";
 import { regenerateShare } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +44,14 @@ export default async function AdminPage() {
     .order("id", { ascending: false })
     .limit(15);
   const notifications = (notes ?? []) as Notification[];
+
+  // Everything the engine ("Simon") has done lately, across every signal.
+  const { data: ev } = await sb
+    .from("signal_events")
+    .select("*")
+    .order("id", { ascending: false })
+    .limit(50);
+  const events = (ev ?? []) as SignalEvent[];
 
   const token = await getShareToken();
   const h = await headers();
@@ -118,6 +127,15 @@ export default async function AdminPage() {
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {events.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="font-mono text-xs uppercase tracking-wider text-muted">
+            engine activity
+          </h2>
+          <SignalTape events={events} />
         </section>
       )}
 

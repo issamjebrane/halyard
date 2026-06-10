@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/supabase/session";
 import { supabaseServer } from "@/lib/supabase/server";
-import type { Signal } from "@/lib/types";
+import type { Signal, SignalEvent } from "@/lib/types";
 import { DAILY_SIGNAL_LIMIT } from "@/lib/constants";
 import SignalsTable from "@/components/SignalsTable";
+import SignalTape from "@/components/SignalTape";
 import PriceTicker from "@/components/PriceTicker";
 import GoldChart from "@/components/GoldChart";
 import TimezoneSync from "@/components/TimezoneSync";
@@ -29,6 +30,18 @@ export default async function TraderPage() {
     .maybeSingle();
 
   const signals = (data ?? []) as Signal[];
+  const featured = signals[0] ?? null;
+
+  // The engine's event tape for the most recent signal (RLS scopes to own).
+  let events: SignalEvent[] = [];
+  if (featured) {
+    const { data: ev } = await sb
+      .from("signal_events")
+      .select("*")
+      .eq("signal_id", featured.id)
+      .order("id", { ascending: true });
+    events = (ev ?? []) as SignalEvent[];
+  }
 
   // Today's post count in the trader's LOCAL day (computed server-side, tz-aware).
   const { data: usedToday } = await sb.rpc("signals_used_today");
@@ -41,7 +54,15 @@ export default async function TraderPage() {
     <div className="space-y-8">
       <TimezoneSync current={profile.timezone} />
       <PriceTicker initial={(pc?.price as number | undefined) ?? null} />
-      <GoldChart signal={signals[0] ?? null} />
+      <GoldChart signal={featured} />
+      {featured && (
+        <section className="space-y-3">
+          <h2 className="font-mono text-xs uppercase tracking-wider text-muted">
+            engine tape · #{featured.id}
+          </h2>
+          <SignalTape events={events} signalId={featured.id} />
+        </section>
+      )}
       <TraderForm remaining={remaining} />
       <section className="space-y-3">
         <h2 className="font-mono text-xs uppercase tracking-wider text-muted">

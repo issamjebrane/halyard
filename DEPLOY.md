@@ -19,7 +19,7 @@ Supabase CLI logged in (`supabase login`).
   - `service_role` key (secret — never ships to the browser)
 - The `<REF>` is the subdomain (e.g. `abcdwxyz`).
 
-### 2. Push the schema (creates tables, RLS, the engine, the 5/day cap)
+### 2. Push the schema (creates tables, RLS, the engine, the 10/day cap)
 From the project folder:
 ```bash
 supabase link --project-ref <REF>          # paste the DB password
@@ -105,7 +105,7 @@ select * from public.price_cache;     -- price + fetched_at should be recent
 ---
 
 ## Notes / hardening
-- The 5/day cap, anti-cheat entry, and TP/SL verification are all enforced in
+- The 10/day cap, anti-cheat entry, and TP/SL verification are all enforced in
   Postgres — they hold in production exactly as locally.
 - The daily cap resets at the **trader's local midnight**. The browser timezone
   is auto-detected and stored on the profile (no input needed); it falls back to
