@@ -1,5 +1,6 @@
 import type { SignalEvent, SignalEventKind } from "@/lib/types";
-import { fmt, fmtR, rel } from "@/lib/format";
+import { fmt, fmtR } from "@/lib/format";
+import TimeStamp from "./TimeStamp";
 
 // How each engine action reads on the tape: label + accent colour.
 const KIND: Record<SignalEventKind, { label: string; tone: string }> = {
@@ -54,7 +55,9 @@ export default function SignalTape({
             >
               {e.r_at_event == null ? "" : fmtR(e.r_at_event)}
             </span>
-            <span className="ml-auto text-muted">{rel(e.created_at)}</span>
+            <span className="ml-auto text-muted">
+              <TimeStamp iso={e.created_at} />
+            </span>
           </li>
         );
       })}

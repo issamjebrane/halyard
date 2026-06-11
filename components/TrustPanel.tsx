@@ -1,5 +1,6 @@
 import type { Trust } from "@/lib/metrics";
 import { fmt, fmtR } from "@/lib/format";
+import InfoTip from "./InfoTip";
 
 const VERDICT_LABEL: Record<Trust["verdict"], string> = {
   insufficient: "insufficient data",
@@ -18,8 +19,24 @@ export default function TrustPanel({ trust }: { trust: Trust }) {
   return (
     <div className="border border-border bg-surface p-5">
       <div className="flex items-baseline justify-between">
-        <span className="text-xs uppercase tracking-wider text-muted">
+        <span className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted">
           reliability verdict
+          <InfoTip label="How the reliability verdict works" width="w-80">
+            <span className="mb-2 block text-foreground">
+              A 0–100 score from the trader&apos;s closed trades.
+            </span>
+            <span className="mt-1 block"><span className="font-mono text-foreground">win rate</span> — % of closed trades that hit TP1</span>
+            <span className="mt-1 block"><span className="font-mono text-foreground">profit factor</span> — gross profit ÷ gross loss (&gt;1 is profitable)</span>
+            <span className="mt-1 block"><span className="font-mono text-foreground">expectancy</span> — average result per trade, in R</span>
+            <span className="mt-1 block"><span className="font-mono text-foreground">max drawdown</span> — largest peak-to-valley drop, in R</span>
+            <span className="mt-1 block"><span className="font-mono text-foreground">payoff</span> — average win ÷ average loss</span>
+            <span className="mt-1 block"><span className="font-mono text-foreground">max consec. losses</span> — longest losing streak</span>
+            <span className="mt-2 block">
+              bands: ≥70 solid · ≥50 promising · ≥30 questionable · &lt;30 not
+              reliable · &lt;10 trades = insufficient. A win rate over 90% caps the
+              score (suspicious); under 30 trades is provisional.
+            </span>
+          </InfoTip>
         </span>
         <span className="font-mono text-sm text-accent">
           {VERDICT_LABEL[trust.verdict]}

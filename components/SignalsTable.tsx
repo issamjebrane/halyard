@@ -1,5 +1,6 @@
 import type { Signal } from "@/lib/types";
-import { fmt, fmtR, rel } from "@/lib/format";
+import { fmt, fmtR } from "@/lib/format";
+import TimeStamp from "./TimeStamp";
 
 const STATUS_CLASS: Record<string, string> = {
   won: "text-buy",
@@ -38,7 +39,7 @@ export default function SignalsTable({
             <Th>pips</Th>
             <Th>mfe</Th>
             <Th>mae</Th>
-            <Th>age</Th>
+            <Th>time</Th>
           </tr>
         </thead>
         <tbody>
@@ -81,7 +82,9 @@ export default function SignalsTable({
               <Td className={s.mae_r == null ? "text-muted" : "text-sell"}>
                 {s.mae_r == null ? "—" : fmtR(s.mae_r)}
               </Td>
-              <Td className="text-muted">{rel(s.created_at)}</Td>
+              <Td className="text-muted">
+                <TimeStamp iso={s.created_at} />
+              </Td>
             </tr>
           ))}
         </tbody>

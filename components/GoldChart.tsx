@@ -14,6 +14,7 @@ import {
   type AutoscaleInfo,
 } from "lightweight-charts";
 import type { Signal } from "@/lib/types";
+import InfoTip from "./InfoTip";
 
 type ApiCandle = { time: number; open: number; high: number; low: number; close: number };
 
@@ -236,13 +237,20 @@ export default function GoldChart({ signal }: { signal?: Signal | null }) {
   return (
     <div className="border border-border bg-surface">
       <div className="flex items-baseline justify-between border-b border-border px-4 py-2">
-        <span className="text-xs uppercase tracking-wider text-muted">
-          XAU/USD · live
-          {signal && (
-            <span className={`ml-2 ${signal.direction === "buy" ? "text-buy" : "text-sell"}`}>
-              · #{signal.id} {signal.direction}
-            </span>
-          )}
+        <span className="inline-flex items-center gap-2 text-xs uppercase tracking-wider text-muted">
+          <span>
+            XAU/USD · live
+            {signal && (
+              <span className={`ml-2 ${signal.direction === "buy" ? "text-buy" : "text-sell"}`}>
+                · #{signal.id} {signal.direction}
+              </span>
+            )}
+          </span>
+          <InfoTip label="About this chart" width="w-72">
+            Real-time XAU/USD candles (Binance PAX Gold). When a signal is shown,
+            its entry, stop loss and TP1–TP3 are drawn as lines; ✓ marks a level
+            price has already touched.
+          </InfoTip>
         </span>
         <span className="font-mono text-sm tabular-nums">
           {last == null ? "—" : last.toFixed(2)}

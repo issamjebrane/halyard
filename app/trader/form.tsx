@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { createSignal } from "@/app/actions/signals";
 import { DAILY_SIGNAL_LIMIT } from "@/lib/constants";
+import InfoTip from "@/components/InfoTip";
 
 export default function TraderForm({ remaining }: { remaining: number }) {
   const [state, action, pending] = useActionState(createSignal, undefined);
@@ -13,8 +14,14 @@ export default function TraderForm({ remaining }: { remaining: number }) {
   return (
     <form action={action} className="space-y-5 border border-border bg-surface p-5">
       <div className="flex items-baseline justify-between">
-        <h2 className="font-mono text-xs uppercase tracking-wider text-muted">
-          post signal
+        <h2 className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted">
+          <span>post signal</span>
+          <InfoTip label="About posting a signal" width="w-80">
+            Market entry is pinned to the live price server-side (can&apos;t be
+            faked). Pending waits for your entry to be reached. TP1 decides the
+            win; TP2/TP3 are extra targets drawn on the chart. Limited to{" "}
+            {DAILY_SIGNAL_LIMIT} signals per day.
+          </InfoTip>
         </h2>
         <span
           className={`font-mono text-xs ${exhausted ? "text-sell" : "text-muted"}`}

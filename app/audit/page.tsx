@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/supabase/session";
 import { supabaseServer } from "@/lib/supabase/server";
-import { rel } from "@/lib/format";
+import TimeStamp from "@/components/TimeStamp";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +43,7 @@ export default async function AuditPage() {
                   <td className="px-3 py-2 text-accent">{r.action}</td>
                   <td className="px-3 py-2">{r.details}</td>
                   <td className="px-3 py-2 text-right text-muted">
-                    {rel(r.created_at)}
+                    <TimeStamp iso={r.created_at} />
                   </td>
                 </tr>
               ))}

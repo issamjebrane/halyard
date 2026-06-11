@@ -7,6 +7,8 @@ import EquityChart from "@/components/EquityChart";
 import SignalsTable from "@/components/SignalsTable";
 import SignalTape from "@/components/SignalTape";
 import EngineTapeInfo from "@/components/EngineTapeInfo";
+import SignalsTableInfo from "@/components/SignalsTableInfo";
+import InfoTip from "@/components/InfoTip";
 import GoldChart from "@/components/GoldChart";
 
 export const dynamic = "force-dynamic";
@@ -65,14 +67,22 @@ export default async function PublicReport({
       </div>
       <TrustPanel trust={trust} />
       <section className="space-y-3">
-        <h2 className="font-mono text-xs uppercase tracking-wider text-muted">
-          equity (R)
+        <h2 className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted">
+          <span>equity (R)</span>
+          <InfoTip label="What the equity curve shows">
+            Running total of result (in R) across closed trades, in the order
+            they closed. Up and to the right is good; the dashed line is break-even.
+          </InfoTip>
         </h2>
         <EquityChart equity={equity} />
       </section>
       <section className="space-y-3">
-        <h2 className="font-mono text-xs uppercase tracking-wider text-muted">
-          live market
+        <h2 className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted">
+          <span>live market</span>
+          <InfoTip label="About this chart" width="w-72">
+            Real-time XAU/USD candles (Binance PAX Gold). The latest signal&apos;s
+            entry, stop loss and TP1–TP3 are drawn on top so you can follow it live.
+          </InfoTip>
         </h2>
         <GoldChart signal={featured} />
       </section>
@@ -86,8 +96,9 @@ export default async function PublicReport({
         </section>
       )}
       <section className="space-y-3">
-        <h2 className="font-mono text-xs uppercase tracking-wider text-muted">
-          signals
+        <h2 className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted">
+          <span>signals</span>
+          <SignalsTableInfo />
         </h2>
         <SignalsTable signals={signals} showTrader />
       </section>

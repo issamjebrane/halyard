@@ -6,12 +6,15 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { getShareToken } from "@/lib/share";
 import { computeMetrics, computeTrust, buildEquity } from "@/lib/metrics";
 import type { Signal, Notification, SignalEvent } from "@/lib/types";
-import { fmtR, rel } from "@/lib/format";
+import { fmtR } from "@/lib/format";
 import TrustPanel from "@/components/TrustPanel";
 import EquityChart from "@/components/EquityChart";
 import SignalsTable from "@/components/SignalsTable";
 import SignalTape from "@/components/SignalTape";
 import EngineTapeInfo from "@/components/EngineTapeInfo";
+import SignalsTableInfo from "@/components/SignalsTableInfo";
+import InfoTip from "@/components/InfoTip";
+import TimeStamp from "@/components/TimeStamp";
 import { regenerateShare } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -71,15 +74,25 @@ export default async function AdminPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="font-mono text-xs uppercase tracking-wider text-muted">
-          equity (R)
+        <h2 className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted">
+          <span>equity (R)</span>
+          <InfoTip label="What the equity curve shows">
+            Running total of result (in R) across closed trades, in the order
+            they closed. Up and to the right is good; the dashed line is break-even.
+          </InfoTip>
         </h2>
         <EquityChart equity={equity} />
       </section>
 
       <section className="space-y-3 border border-border bg-surface p-5">
-        <h2 className="font-mono text-xs uppercase tracking-wider text-muted">
-          public record
+        <h2 className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted">
+          <span>public record</span>
+          <InfoTip label="What the public record is">
+            A read-only, shareable page of the verified track record. Anyone with
+            the link can view it — no login. <span className="text-foreground">rotate link</span>{" "}
+            revokes the old URL; <span className="text-foreground">export csv</span>{" "}
+            downloads every signal.
+          </InfoTip>
         </h2>
         <div className="flex flex-wrap items-center gap-3">
           <code className="break-all border border-border bg-background px-3 py-2 font-mono text-xs">
@@ -110,8 +123,12 @@ export default async function AdminPage() {
 
       {notifications.length > 0 && (
         <section className="space-y-3">
-          <h2 className="font-mono text-xs uppercase tracking-wider text-muted">
-            alerts
+          <h2 className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted">
+            <span>alerts</span>
+            <InfoTip label="What alerts are">
+              Engine notifications: a new signal was posted, or a signal closed
+              (won/lost). Newest first.
+            </InfoTip>
           </h2>
           <ul className="border border-border bg-surface font-mono text-xs">
             {notifications.map((n) => (
@@ -124,7 +141,7 @@ export default async function AdminPage() {
                 >
                   {n.message}
                 </span>
-                <span className="text-muted">{rel(n.created_at)}</span>
+                <TimeStamp iso={n.created_at} className="text-muted" />
               </li>
             ))}
           </ul>
@@ -142,8 +159,9 @@ export default async function AdminPage() {
       )}
 
       <section className="space-y-3">
-        <h2 className="font-mono text-xs uppercase tracking-wider text-muted">
-          all signals
+        <h2 className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted">
+          <span>all signals</span>
+          <SignalsTableInfo />
         </h2>
         <SignalsTable signals={signals} showTrader />
       </section>
