@@ -6,15 +6,20 @@
     "dev": "next dev -p 3003",
     "build": "next build",
     "start": "next start -p 3003",
-    "lint": "eslint"
+    "lint": "eslint",
+    "tg:login": "node scripts/telegram-login.mjs",
+    "ingest": "node scripts/telegram-ingest.mjs",
+    "execute": "node scripts/metaapi-executor.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.107.0",
     "lightweight-charts": "^5.2.0",
+    "metaapi.cloud-sdk": "^29.3.3",
     "next": "16.2.7",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "telegram": "^2.26.22"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

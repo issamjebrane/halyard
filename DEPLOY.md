@@ -104,6 +104,69 @@ select * from public.price_cache;     -- price + fetched_at should be recent
 
 ---
 
+## C. Telegram ingester (read-only background worker)
+
+Pulls gold signals from the Gold VIP Telegram channel into Halyard, attributed
+to a dedicated `gold_vip` trader, so the verifier tracks them. It is a **long-
+running listener** — it does NOT fit Vercel/Supabase (no always-on process), so
+it runs as a tiny worker on Railway or Render.
+
+### 1. Generate the session (once, on your machine)
+```bash
+npm run tg:login        # enter phone + the code Telegram sends (+ 2FA if set)
+```
+Copy the printed `TELEGRAM_SESSION=...` value — you'll paste it into the host's
+env vars (it's a secret; never commit it).
+
+### 2. Deploy the worker
+Push the repo to GitHub, then:
+- **Railway** → New Project → Deploy from repo. Railway reads `railway.json`
+  (start command `node scripts/telegram-ingest.mjs`). Add the env vars below.
+- **Render** → New → Blueprint → pick the repo. Render reads `render.yaml`
+  (a `worker` service). Fill the `sync: false` secrets in the dashboard.
+
+Env vars the worker needs:
+```
+TELEGRAM_API_ID, TELEGRAM_API_HASH, TELEGRAM_SESSION   (secret)
+TELEGRAM_CHANNEL = Gold VIP signal                     (title, @username, or id)
+NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY    (secret)
+BINANCE_PRICE_URL                                       (the PAXGUSDT ticker)
+```
+
+The worker backfills the last 50 messages on boot, then listens live; it never
+sends anything to Telegram, and inserts are idempotent (a dedup index on
+`(source, source_ref)`). To import history only: `node scripts/telegram-ingest.mjs --backfill 200 --no-listen`.
+
+Note: a 24/7 worker isn't truly free anywhere — Railway runs on a small monthly
+usage credit; Render workers are a cheap paid instance. The web app stays on
+Vercel free; only this worker needs the host.
+
+---
+
+## D. Trade executor — copy signals onto MetaTrader 5
+
+Two ways to turn ingested signals into real MT5 orders. Both size by **risk %**,
+place up to 3 orders (TP1/TP2/TP3 + shared SL), move SL to breakeven after TP1,
+and record every signal in `executions` (never traded twice). Start on a **demo
+account** with `DRY_RUN=true`.
+
+**Option 1 — No Windows (recommended): MetaApi + Linux.**
+`scripts/metaapi-executor.mjs` runs on any Linux box (e.g. Oracle Always-Free),
+talking to your MT5 account through [metaapi.cloud](https://metaapi.cloud) — no
+Windows VM, no local terminal.
+1. Sign up at metaapi.cloud, add your MT5 **demo** account, copy the **token** and
+   **account id**.
+2. Put `METAAPI_TOKEN`, `METAAPI_ACCOUNT_ID` (+ the executor tuning vars) in
+   `.env.local` (see `.env.local.example`).
+3. `npm install && npm run execute` (keep `DRY_RUN=true` until the sizing looks
+   right, then set `DRY_RUN=false`).
+
+**Option 2 — Self-hosted on Windows: `mt5/executor.py`.**
+A Windows VPS running the MT5 terminal + the official `MetaTrader5` Python lib.
+See `mt5/README.md`. Full control, no third-party, but you run a Windows box.
+
+---
+
 ## Notes / hardening
 - The 10/day cap, anti-cheat entry, and TP/SL verification are all enforced in
   Postgres — they hold in production exactly as locally.

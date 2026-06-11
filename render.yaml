@@ -1,0 +1,25 @@
+# Render Blueprint for the read-only Telegram ingester (background worker).
+# The Next.js web app is hosted on Vercel — this file defines ONLY the worker.
+# Secrets (sync: false) are entered in the Render dashboard, not committed.
+services:
+  - type: worker
+    name: halyard-telegram-ingest
+    runtime: node
+    buildCommand: npm install
+    startCommand: node scripts/telegram-ingest.mjs
+    autoDeploy: true
+    envVars:
+      - key: TELEGRAM_API_ID
+        sync: false
+      - key: TELEGRAM_API_HASH
+        sync: false
+      - key: TELEGRAM_SESSION
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: TELEGRAM_CHANNEL
+        value: "Gold VIP signal"
+      - key: BINANCE_PRICE_URL
+        value: "https://data-api.binance.vision/api/v3/ticker/price?symbol=PAXGUSDT"
