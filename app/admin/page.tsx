@@ -5,8 +5,8 @@ import { getProfile } from "@/lib/supabase/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getShareToken } from "@/lib/share";
 import { computeMetrics, computeTrust, buildEquity } from "@/lib/metrics";
-import type { Signal, Notification, SignalEvent, Execution } from "@/lib/types";
-import { fmtR, countWithin } from "@/lib/format";
+import type { Signal, Notification, SignalEvent, Execution, Mt5Status } from "@/lib/types";
+import { fmtR, countWithin, secondsSince } from "@/lib/format";
 import TrustPanel from "@/components/TrustPanel";
 import EquityChart from "@/components/EquityChart";
 import SignalsExplorer from "@/components/SignalsExplorer";
@@ -75,6 +75,10 @@ export default async function AdminPage() {
   const ingest = { lastAt: tg[0]?.created_at ?? null, last24h, total: tg.length };
   const exec = { counts: execCounts, total: executions.length, recent: executions.slice(0, 6) };
 
+  const { data: stData } = await sb.from("mt5_status").select("*").eq("id", 1).maybeSingle();
+  const ea = (stData ?? null) as Mt5Status | null;
+  const eaAgeS = ea ? secondsSince(ea.updated_at) : null;
+
   const token = await getShareToken();
   const h = await headers();
   const base = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
@@ -110,34 +114,32 @@ export default async function AdminPage() {
 
       <Analysis signals={signals} />
 
-      <div className="grid gap-8 lg:grid-cols-2">
-        <OpsPanel ingest={ingest} exec={exec} />
+      <OpsPanel ingest={ingest} exec={exec} ea={ea} eaAgeS={eaAgeS} />
 
-        {notifications.length > 0 && (
-          <section className="space-y-3">
-            <h2 className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted">
-              <span>alerts</span>
-              <InfoTip label="What alerts are">
-                Engine notifications: a new signal was posted, or a signal closed
-                (won/lost). Newest first.
-              </InfoTip>
-            </h2>
-            <ul className="border border-border bg-surface font-mono text-xs">
-              {notifications.map((n) => (
-                <li
-                  key={n.id}
-                  className="flex justify-between gap-4 border-b border-border/60 px-4 py-2 last:border-0"
-                >
-                  <span className={n.type === "signal_closed" ? "text-foreground" : "text-muted"}>
-                    {n.message}
-                  </span>
-                  <TimeStamp iso={n.created_at} className="text-muted" />
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-      </div>
+      {notifications.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted">
+            <span>alerts</span>
+            <InfoTip label="What alerts are">
+              Engine notifications: a new signal was posted, or a signal closed
+              (won/lost). Newest first.
+            </InfoTip>
+          </h2>
+          <ul className="border border-border bg-surface font-mono text-xs">
+            {notifications.map((n) => (
+              <li
+                key={n.id}
+                className="flex justify-between gap-4 border-b border-border/60 px-4 py-2 last:border-0"
+              >
+                <span className={n.type === "signal_closed" ? "text-foreground" : "text-muted"}>
+                  {n.message}
+                </span>
+                <TimeStamp iso={n.created_at} className="text-muted" />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <SourceBreakdown signals={signals} />
 

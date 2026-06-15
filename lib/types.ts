@@ -96,6 +96,19 @@ export type SignalEvent = {
   created_at: string;
 };
 
+// Live MT5 engine status, upserted by the EA every poll (heartbeat + broker price).
+export type Mt5Status = {
+  id: number;
+  account: string | null;
+  symbol: string | null;
+  bid: number | null;
+  ask: number | null;
+  open_positions: number | null;
+  equity: number | null;
+  balance: number | null;
+  updated_at: string;
+};
+
 export type PriceCache = {
   price: number | null;
   source_time: string | null;

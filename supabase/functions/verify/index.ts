@@ -33,7 +33,23 @@ Deno.serve(async () => {
 
   const inProgress = candles[candles.length - 1];
   const closed = candles.slice(0, -1); // last 1-2 closed candles (overlap covers a missed run)
-  const price = Number(inProgress[4]); // current close ≈ live price
+  const paxgClose = Number(inProgress[4]); // current PAXG close ≈ live gold
+
+  // Anchor the PAXG proxy to the broker's REAL XAUUSD (pushed by the EA heartbeat),
+  // so the paper record triggers at the same price levels the EA actually trades on.
+  // PAXG supplies the intra-minute shape; the broker supplies the level.
+  let offset = 0;
+  let price = paxgClose;
+  try {
+    const { data: st } = await supabase
+      .from("mt5_status").select("bid,updated_at").eq("id", 1).maybeSingle();
+    const bid = Number(st?.bid);
+    const ageMs = st?.updated_at ? Date.now() - new Date(st.updated_at).getTime() : Infinity;
+    if (Number.isFinite(bid) && bid > 0 && ageMs < 3 * 60 * 1000) {
+      offset = bid - paxgClose; // shift PAXG candles onto the broker's level
+      price = bid;
+    }
+  } catch (_e) { /* no fresh heartbeat -> fall back to PAXG as-is */ }
 
   // 2) Cache the live price for the UI ticker.
   const { error: cacheErr } = await supabase.from("price_cache").upsert({
@@ -46,9 +62,9 @@ Deno.serve(async () => {
   // 3) Run the RATCHET engine on each closed candle, oldest first.
   let verifyErr: string | null = null;
   for (const k of closed) {
-    const high = Number(k[2]);
-    const low = Number(k[3]);
-    const close = Number(k[4]);
+    const high = Number(k[2]) + offset;
+    const low = Number(k[3]) + offset;
+    const close = Number(k[4]) + offset;
     if (!Number.isFinite(high) || !Number.isFinite(low) || !Number.isFinite(close)) continue;
     const { error } = await supabase.rpc("run_verification", {
       p_high: high,
@@ -66,6 +82,8 @@ Deno.serve(async () => {
     {
       ok,
       price,
+      offset,
+      broker_anchored: offset !== 0,
       candles_processed: closed.length,
       cache_error: cacheErr?.message ?? null,
       verify_error: verifyErr,
