@@ -19,7 +19,7 @@ import { TelegramClient } from "telegram";
 import { StringSession } from "telegram/sessions/index.js";
 import { NewMessage } from "telegram/events/index.js";
 import { createClient } from "@supabase/supabase-js";
-import { parseSignal } from "./telegram-parse.mjs";
+import { makeParser } from "./telegram-llm-parse.mjs";
 
 function loadEnv() {
   try {
@@ -60,6 +60,11 @@ for (let i = 0; i < process.argv.length; i++) {
 const sb = createClient(sbUrl, sbKey, { auth: { persistSession: false } });
 const SOURCE = "telegram:gold_vip";
 
+// Regex-first parser with a cost-capped Gemini (Flash) fallback for messy/other
+// formats and management messages. See scripts/telegram-llm-parse.mjs.
+const parser = makeParser();
+console.log(`parser: regex + gemini ${parser.enabled ? "ON" : "off"}`);
+
 // Ensure the dedicated 'gold_vip' trader exists; return its profile id.
 async function ensureTrader() {
   const found = await sb.from("profiles").select("id").eq("username", "gold_vip").maybeSingle();
@@ -99,8 +104,9 @@ let traderId;
 
 // Parse + insert one message. Idempotent on (source, source_ref).
 async function ingest(text, msgId) {
-  const parsed = parseSignal(text);
+  const parsed = await parser.parse(text);
   if (!parsed) return { skip: "not-a-signal" };
+  if (parsed.action === "close") return { skip: "close-msg" }; // exit instruction; EA self-manages via RATCHET
   const source_ref = String(msgId);
 
   const dup = await sb.from("signals").select("id").eq("source", SOURCE).eq("source_ref", source_ref).maybeSingle();
@@ -162,7 +168,7 @@ async function ingest(text, msgId) {
     action: "signal_ingested",
     details: `#${sid} ${direction} @ ${entry} from telegram msg ${source_ref}`,
   });
-  return { inserted: sid };
+  return { inserted: sid, via: parsed.via };
 }
 
 // Resolve TELEGRAM_CHANNEL: @username / numeric id / t.me link via getEntity,
@@ -216,9 +222,10 @@ async function main() {
       if (!m?.message) continue;
       const r = await ingest(m.message, m.id);
       tally(r);
-      if (r.inserted) console.log(`  + #${r.inserted}  ${m.message.split("\n")[0].slice(0, 48)}`);
+      if (r.inserted) console.log(`  + #${r.inserted} [${r.via}]  ${m.message.split("\n")[0].slice(0, 48)}`);
     }
     console.log(`backfill done: ${ins} inserted, ${dup} duplicates, ${skip} non-signals (of ${msgs.length} msgs)`);
+    console.log(`parser stats: ${JSON.stringify(parser.stats)}`);
   }
 
   if (!doListen) {
@@ -226,17 +233,24 @@ async function main() {
     process.exit(0);
   }
 
+  // NOTE: do NOT pass { chats: [chan] } — this GramJS version tries to re-resolve
+  // the entity during event dispatch and throws "Cannot find any entity ... [object
+  // Object]", crashing the listener on every message. Listen to all, filter by id here.
+  const chanId = chan.id?.toString();
   client.addEventHandler(async (event) => {
     const m = event.message;
     if (!m?.message) return;
+    const cid = m.peerId?.channelId?.toString();
+    // only the Gold VIP channel — tolerate marked (-100…) vs raw id forms
+    if (chanId && cid && !(cid === chanId || chanId.endsWith(cid) || cid.endsWith(chanId))) return;
     try {
       const r = await ingest(m.message, m.id);
-      if (r.inserted) console.log(`  + #${r.inserted}  ${m.message.split("\n")[0].slice(0, 48)}`);
+      if (r.inserted) console.log(`  + #${r.inserted} [${r.via}]  ${m.message.split("\n")[0].slice(0, 48)}`);
       else if (!String(r.skip).startsWith("dup")) console.log(`  · skipped (${r.skip})`);
     } catch (e) {
       console.error("ingest error:", e?.message ?? e);
     }
-  }, new NewMessage({ chats: [chan] }));
+  }, new NewMessage({}));
 
   console.log("listening for new signals… (Ctrl-C to stop)");
   const stop = async () => {

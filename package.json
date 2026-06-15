@@ -12,6 +12,7 @@
     "execute": "node scripts/metaapi-executor.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.104.2",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.107.0",
     "lightweight-charts": "^5.2.0",

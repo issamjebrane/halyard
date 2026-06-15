@@ -2,8 +2,9 @@
 -- Run this ONCE against the hosted project after `supabase functions deploy verify`.
 -- Replace <PROJECT_REF> and <SERVICE_ROLE_KEY> first.
 --
--- Locally we don't use pg_cron (cross-container networking is fiddly); instead
--- the dev loop hits the function over HTTP — see scripts/poll-local.sh.
+-- Apply directly against production: `./scripts/psql-prod.sh -f supabase/cron.sql`
+-- (after filling the placeholders) or paste into the dashboard SQL editor.
+-- No local stack / Docker is involved.
 
 create extension if not exists pg_cron;
 create extension if not exists pg_net with schema extensions;

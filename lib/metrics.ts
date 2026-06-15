@@ -10,7 +10,10 @@ type Closed = Pick<Signal, "status" | "result_r" | "closed_at" | "id" | "directi
 
 function closedSorted(signals: Signal[]): Closed[] {
   return signals
-    .filter((s) => s.status === "won" || s.status === "lost")
+    .filter(
+      (s) =>
+        s.status === "won" || s.status === "lost" || s.status === "breakeven",
+    )
     .sort((a, b) => {
       const ca = a.closed_at ?? "";
       const cb = b.closed_at ?? "";
@@ -36,7 +39,7 @@ export function computeMetrics(signals: Signal[]): Metrics {
   const closed = closedSorted(signals);
   const total = closed.length;
   const wins = closed.filter((r) => r.status === "won").length;
-  const losses = total - wins;
+  const losses = closed.filter((r) => r.status === "lost").length;
   const win_rate = total ? (wins / total) * 100 : 0;
   const gross_profit = closed
     .filter((r) => (r.result_r ?? 0) > 0)

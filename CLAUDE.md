@@ -46,3 +46,27 @@ supabase/schema.sql     — table + RLS policies, run once in the dashboard
 Reuse the `auth.users` table. Add a `rigs` (or `instances`) table keyed by
 `user_id`, with config columns for the bot side. Keep the `transmissions`
 table as the source of truth signals are read from.
+
+## Ops — production-direct, NO Docker
+
+This project does not use the Supabase local stack or any Docker container.
+Operate everything against the hosted project:
+
+- **SQL / engine checks:** `./scripts/psql-prod.sh -f <file.sql>` connects to the
+  prod pooler (creds from `.env.local`). Verify engine changes with a **ROLLBACK**
+  transaction so nothing persists — see `scripts/ratchet-verify.sql`. Never run
+  crafted test prices through `run_verification` outside a rollback: it would
+  close real open signals.
+- **Migrations:** `supabase db push`. **Edge function:** `supabase functions
+  deploy verify --no-verify-jwt`. Neither needs Docker.
+- `supabase/config.toml` is the Supabase CLI config (used by `db push` /
+  `functions deploy`); it only launches Docker if you run `supabase start`, which
+  we never do.
+
+## Exit logic — RATCHET
+
+The verifier closes on a trailing-stop ladder, not at TP1
+(`docs/ESTRATEGIA_SIMON_INGENIERO.md`, `supabase/migrations/*_ratchet.sql`):
+TP1→SL to entry (break-even), TP2→SL to TP1, final TP→close (win), current SL→close,
+72h max hold. `run_verification(high, low, close)` evaluates on 1-minute candle
+high/low. Break-even is its own `status` (0R, neither win nor loss).

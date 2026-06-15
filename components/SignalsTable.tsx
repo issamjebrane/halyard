@@ -5,6 +5,7 @@ import TimeStamp from "./TimeStamp";
 const STATUS_CLASS: Record<string, string> = {
   won: "text-buy",
   lost: "text-sell",
+  breakeven: "text-accent",
   open: "text-foreground",
   pending: "text-muted",
   cancelled: "text-muted",

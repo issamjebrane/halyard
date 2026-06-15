@@ -1,6 +1,12 @@
 export type Direction = "buy" | "sell";
 export type OrderType = "market" | "pending";
-export type SignalStatus = "pending" | "open" | "won" | "lost" | "cancelled";
+export type SignalStatus =
+  | "pending"
+  | "open"
+  | "won"
+  | "lost"
+  | "breakeven"
+  | "cancelled";
 export type Role = "admin" | "trader";
 
 export type Profile = {
