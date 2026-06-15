@@ -59,6 +59,15 @@ for (let i = 0; i < process.argv.length; i++) {
 
 const sb = createClient(sbUrl, sbKey, { auth: { persistSession: false } });
 const SOURCE = "telegram:gold_vip";
+// Don't ingest messages older than this — keeps backfill / catch-up from
+// re-injecting stale historical signals at today's price (they'd go live at
+// historic levels and pollute the record). Override via env if needed.
+const MAX_SIGNAL_AGE_MIN = Number(process.env.MAX_SIGNAL_AGE_MIN ?? 180);
+const ageOk = (d) => {
+  if (!d) return true; // unknown timestamp — don't drop
+  const ms = d instanceof Date ? d.getTime() : Number(d) * 1000;
+  return !Number.isFinite(ms) || Date.now() - ms <= MAX_SIGNAL_AGE_MIN * 60000;
+};
 
 // Regex-first parser with a cost-capped Gemini (Flash) fallback for messy/other
 // formats and management messages. See scripts/telegram-llm-parse.mjs.
@@ -103,9 +112,8 @@ async function fetchLive() {
 let traderId;
 
 // Parse + insert one message. Idempotent on (source, source_ref).
-// opts.backfill marks bulk-imported history as excluded so it never counts in
-// the track record / trust score — only live, forward-tracked signals do.
-async function ingest(text, msgId, opts = {}) {
+async function ingest(text, msgId, msgDate) {
+  if (!ageOk(msgDate)) return { skip: "stale" }; // don't re-inject old posts at today's price
   const parsed = await parser.parse(text);
   if (!parsed) return { skip: "not-a-signal" };
   if (parsed.action === "close") return { skip: "close-msg" }; // exit instruction; EA self-manages via RATCHET
@@ -148,10 +156,6 @@ async function ingest(text, msgId, opts = {}) {
     track_until: track,
     source: SOURCE,
     source_ref,
-    excluded: !!opts.backfill,
-    excluded_reason: opts.backfill
-      ? "backfill: bulk-ingested historical batch, not forward-tracked"
-      : null,
   };
 
   const ins = await sb.from("signals").insert(row).select("id").single();
@@ -226,7 +230,7 @@ async function main() {
     // oldest-first so inserted ids follow chronological order
     for (const m of [...msgs].reverse()) {
       if (!m?.message) continue;
-      const r = await ingest(m.message, m.id, { backfill: true });
+      const r = await ingest(m.message, m.id, m.date);
       tally(r);
       if (r.inserted) console.log(`  + #${r.inserted} [${r.via}]  ${m.message.split("\n")[0].slice(0, 48)}`);
     }
@@ -250,7 +254,7 @@ async function main() {
     // only the Gold VIP channel — tolerate marked (-100…) vs raw id forms
     if (chanId && cid && !(cid === chanId || chanId.endsWith(cid) || cid.endsWith(chanId))) return;
     try {
-      const r = await ingest(m.message, m.id);
+      const r = await ingest(m.message, m.id, m.date);
       if (r.inserted) console.log(`  + #${r.inserted} [${r.via}]  ${m.message.split("\n")[0].slice(0, 48)}`);
       else if (!String(r.skip).startsWith("dup")) console.log(`  · skipped (${r.skip})`);
     } catch (e) {
