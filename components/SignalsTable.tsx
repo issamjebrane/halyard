@@ -25,7 +25,7 @@ export default function SignalsTable({
     <div className="overflow-x-auto border border-border">
       <table className="w-full border-collapse font-mono text-xs">
         <thead>
-          <tr className="border-b border-border text-left text-muted">
+          <tr className="border-b border-border bg-surface text-left text-muted">
             <Th>#</Th>
             {showTrader && <Th>trader</Th>}
             <Th>dir</Th>

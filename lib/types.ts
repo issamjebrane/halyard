@@ -56,8 +56,24 @@ export type Signal = {
   mae_r: number | null; // MAE in R (<= 0)
   settled_at: string | null; // null while the engine is still observing
   track_until: string | null; // post-outcome observation deadline
+  source: string | null; // e.g. 'telegram:gold_vip'; null/absent = manual
+  source_ref: string | null; // upstream message id (dedup key)
   // present when joined for admin/public views
   trader_name?: string;
+};
+
+// One row per signal the MT5 executor acts on (the trade ledger). Admin-readable.
+export type Execution = {
+  id: number;
+  signal_id: number;
+  account: string | null;
+  status: "placed" | "breakeven" | "closed" | "error" | "skipped";
+  tickets: number[];
+  lots: number | null;
+  entry_fill: number | null;
+  detail: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 // One discrete thing the verification engine did to a signal — "the tape".

@@ -8,6 +8,13 @@ export function fmtR(n: number | null | undefined): string {
   return `${n >= 0 ? "+" : ""}${n.toFixed(2)}R`;
 }
 
+// Count timestamps within the last `hours`. Kept out of component render so the
+// current-time read doesn't trip the purity lint (server components run per request).
+export function countWithin(isos: (string | null | undefined)[], hours = 24): number {
+  const cutoff = Date.now() - hours * 3_600_000;
+  return isos.reduce((n, s) => (s && new Date(s).getTime() >= cutoff ? n + 1 : n), 0);
+}
+
 export function rel(iso: string | null | undefined): string {
   if (!iso) return "—";
   const d = (Date.now() - new Date(iso).getTime()) / 1000;
