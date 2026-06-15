@@ -36,11 +36,16 @@ export default function EngineCard({ initial }: { initial: Mt5Status | null }) {
     };
   }, []);
 
-  // whichever heartbeat is newer wins — no prop→state syncing needed
+  // whichever heartbeat is newer wins — no prop→state syncing needed.
+  // compare parsed instants: the realtime payload sends timestamptz as the raw
+  // PG string ("… 09:00:00+00", space-separated) while the server snapshot is
+  // ISO ("…T09:00:00+00:00"), so a lexicographic compare would be wrong.
   const ea = useMemo(() => {
     if (!initial) return live;
     if (!live) return initial;
-    return live.updated_at >= initial.updated_at ? live : initial;
+    return new Date(live.updated_at).getTime() >= new Date(initial.updated_at).getTime()
+      ? live
+      : initial;
   }, [initial, live]);
 
   // tick the age client-side (Date.now() lives in the callback, never in render)

@@ -70,8 +70,9 @@ export default function Analysis({ signals }: { signals: Signal[] }) {
     { label: "1–2R", cls: "bg-buy/75" },
     { label: "≥ 2R", cls: "bg-buy" },
   ];
+  // an exact -1R full stop belongs in the "≤ -1R" band, not "-1–0R"
   const bucketOf = (x: number) =>
-    x <= -1 - EPS ? 0 : x < -EPS ? 1 : x <= EPS ? 2 : x < 1 ? 3 : x < 2 ? 4 : 5;
+    x <= -1 + EPS ? 0 : x < -EPS ? 1 : x <= EPS ? 2 : x < 1 ? 3 : x < 2 ? 4 : 5;
   const dist = [0, 0, 0, 0, 0, 0];
   for (const s of closed) dist[bucketOf(r(s))]++;
   const distMax = Math.max(1, ...dist);

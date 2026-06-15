@@ -103,7 +103,9 @@ async function fetchLive() {
 let traderId;
 
 // Parse + insert one message. Idempotent on (source, source_ref).
-async function ingest(text, msgId) {
+// opts.backfill marks bulk-imported history as excluded so it never counts in
+// the track record / trust score — only live, forward-tracked signals do.
+async function ingest(text, msgId, opts = {}) {
   const parsed = await parser.parse(text);
   if (!parsed) return { skip: "not-a-signal" };
   if (parsed.action === "close") return { skip: "close-msg" }; // exit instruction; EA self-manages via RATCHET
@@ -146,6 +148,10 @@ async function ingest(text, msgId) {
     track_until: track,
     source: SOURCE,
     source_ref,
+    excluded: !!opts.backfill,
+    excluded_reason: opts.backfill
+      ? "backfill: bulk-ingested historical batch, not forward-tracked"
+      : null,
   };
 
   const ins = await sb.from("signals").insert(row).select("id").single();
@@ -220,7 +226,7 @@ async function main() {
     // oldest-first so inserted ids follow chronological order
     for (const m of [...msgs].reverse()) {
       if (!m?.message) continue;
-      const r = await ingest(m.message, m.id);
+      const r = await ingest(m.message, m.id, { backfill: true });
       tally(r);
       if (r.inserted) console.log(`  + #${r.inserted} [${r.via}]  ${m.message.split("\n")[0].slice(0, 48)}`);
     }

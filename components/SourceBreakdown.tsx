@@ -8,8 +8,11 @@ const label = (src: string | null) => (src ? src.replace("telegram:", "tg · ") 
 // Split the track record by source so manual signals and each channel feed can
 // be compared head-to-head. Reuses the exact same metrics math as the headline.
 export default function SourceBreakdown({ signals }: { signals: Signal[] }) {
+  // performance comparison is over real (non-excluded) trades only, so every
+  // column on a row shares one counting base and reconciles.
   const groups = new Map<string | null, Signal[]>();
   for (const s of signals) {
+    if (s.excluded) continue;
     const key = s.source ?? null;
     (groups.get(key) ?? groups.set(key, []).get(key)!).push(s);
   }
