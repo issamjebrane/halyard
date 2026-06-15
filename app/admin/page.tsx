@@ -6,8 +6,9 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { getShareToken } from "@/lib/share";
 import { computeMetrics, computeTrust, buildEquity } from "@/lib/metrics";
 import type { Signal, Notification, SignalEvent, Execution, Mt5Status } from "@/lib/types";
-import { fmtR, countWithin, secondsSince } from "@/lib/format";
+import { fmtR, countWithin } from "@/lib/format";
 import TrustPanel from "@/components/TrustPanel";
+import LiveData from "@/components/LiveData";
 import EquityChart from "@/components/EquityChart";
 import SignalsExplorer from "@/components/SignalsExplorer";
 import SignalTape from "@/components/SignalTape";
@@ -77,7 +78,6 @@ export default async function AdminPage() {
 
   const { data: stData } = await sb.from("mt5_status").select("*").eq("id", 1).maybeSingle();
   const ea = (stData ?? null) as Mt5Status | null;
-  const eaAgeS = ea ? secondsSince(ea.updated_at) : null;
 
   const token = await getShareToken();
   const h = await headers();
@@ -86,6 +86,11 @@ export default async function AdminPage() {
 
   return (
     <div className="space-y-8">
+      <LiveData tables={["signals", "executions", "notifications", "signal_events"]} pollMs={20000} />
+      <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-muted">
+        <span className="inline-block h-1.5 w-1.5 rounded-full bg-buy animate-pulse" />
+        live · this dashboard updates on its own — no need to reload
+      </p>
       <TrustPanel trust={trust} />
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
@@ -114,7 +119,7 @@ export default async function AdminPage() {
 
       <Analysis signals={signals} />
 
-      <OpsPanel ingest={ingest} exec={exec} ea={ea} eaAgeS={eaAgeS} />
+      <OpsPanel ingest={ingest} exec={exec} ea={ea} />
 
       {notifications.length > 0 && (
         <section className="space-y-3">

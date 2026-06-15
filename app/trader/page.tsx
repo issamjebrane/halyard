@@ -10,6 +10,7 @@ import SignalsTableInfo from "@/components/SignalsTableInfo";
 import PriceTicker from "@/components/PriceTicker";
 import GoldChart from "@/components/GoldChart";
 import TimezoneSync from "@/components/TimezoneSync";
+import LiveData from "@/components/LiveData";
 import TraderForm from "./form";
 
 export const dynamic = "force-dynamic";
@@ -55,6 +56,7 @@ export default async function TraderPage() {
   return (
     <div className="space-y-8">
       <TimezoneSync current={profile.timezone} />
+      <LiveData tables={["signals", "signal_events"]} pollMs={20000} />
       <PriceTicker initial={(pc?.price as number | undefined) ?? null} />
       <GoldChart signal={featured} />
       {featured && (

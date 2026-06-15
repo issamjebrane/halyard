@@ -58,6 +58,8 @@ export type Signal = {
   track_until: string | null; // post-outcome observation deadline
   source: string | null; // e.g. 'telegram:gold_vip'; null/absent = manual
   source_ref: string | null; // upstream message id (dedup key)
+  excluded: boolean; // true = kept on record but not counted (e.g. backfill)
+  excluded_reason: string | null;
   // present when joined for admin/public views
   trader_name?: string;
 };

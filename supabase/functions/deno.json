@@ -1,0 +1,4 @@
+{
+  "//": "Marks supabase/functions as a Deno project root so the Deno language server treats index.ts correctly (Deno globals + URL imports). Not used by the Next build, which excludes this folder (tsconfig.json).",
+  "lint": { "rules": { "tags": ["recommended"] } }
+}

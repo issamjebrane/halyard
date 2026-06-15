@@ -1,0 +1,6 @@
+{
+  "//": "supabase/functions are Deno (not Node). Scope the Deno language server to that folder so the editor stops flagging Deno.serve / URL imports as errors. The rest of the repo stays on the normal TS server. Requires the 'Deno' VS Code extension (denoland.vscode-deno).",
+  "deno.enablePaths": ["supabase/functions"],
+  "deno.lint": true,
+  "deno.unstable": false
+}

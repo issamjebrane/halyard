@@ -2,6 +2,7 @@ import type { Execution, Mt5Status } from "@/lib/types";
 import { fmt } from "@/lib/format";
 import TimeStamp from "./TimeStamp";
 import InfoTip from "./InfoTip";
+import EngineCard from "./EngineCard";
 
 const EXEC_CLASS: Record<Execution["status"], string> = {
   placed: "text-buy",
@@ -15,20 +16,13 @@ const EXEC_CLASS: Record<Execution["status"], string> = {
 // ingest, and what the copier executed. Pure presentational.
 export default function OpsPanel({
   ea,
-  eaAgeS,
   ingest,
   exec,
 }: {
   ea: Mt5Status | null;
-  eaAgeS: number | null;
   ingest: { lastAt: string | null; last24h: number; total: number };
   exec: { counts: Partial<Record<Execution["status"], number>>; total: number; recent: Execution[] };
 }) {
-  const dot =
-    eaAgeS == null ? "bg-muted" : eaAgeS < 30 ? "bg-buy" : eaAgeS < 120 ? "bg-accent" : "bg-sell";
-  const dotLabel =
-    eaAgeS == null ? "offline" : eaAgeS < 30 ? "live" : eaAgeS < 120 ? "lagging" : "down";
-
   return (
     <section className="space-y-3">
       <h2 className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted">
@@ -43,23 +37,8 @@ export default function OpsPanel({
       </h2>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        {/* engine heartbeat */}
-        <div className="border border-border bg-surface p-4">
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted">
-            <span className={`inline-block h-1.5 w-1.5 rounded-full ${dot}`} />
-            <span>engine · mt5 {dotLabel}</span>
-          </div>
-          {ea ? (
-            <dl className="mt-3 space-y-2 font-mono text-xs">
-              <Row k="heartbeat"><TimeStamp iso={ea.updated_at} /></Row>
-              <Row k="price"><span className="tabular-nums">{fmt(ea.bid)}</span></Row>
-              <Row k="equity"><span className="tabular-nums">{fmt(ea.equity)} / {fmt(ea.balance)}</span></Row>
-              <Row k="open"><span className="tabular-nums">{ea.open_positions ?? 0}</span></Row>
-            </dl>
-          ) : (
-            <p className="mt-3 font-mono text-xs text-muted">no heartbeat yet.</p>
-          )}
-        </div>
+        {/* engine heartbeat — live (self-updating client island) */}
+        <EngineCard initial={ea} />
 
         {/* ingest */}
         <div className="border border-border bg-surface p-4">

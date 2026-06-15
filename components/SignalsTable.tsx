@@ -45,7 +45,10 @@ export default function SignalsTable({
         </thead>
         <tbody>
           {signals.map((s) => (
-            <tr key={s.id} className="border-b border-border/60 last:border-0">
+            <tr
+              key={s.id}
+              className={`border-b border-border/60 last:border-0 ${s.excluded ? "opacity-40" : ""}`}
+            >
               <Td>{s.id}</Td>
               {showTrader && <Td>{s.trader_name ?? "—"}</Td>}
               <Td className={s.direction === "buy" ? "text-buy" : "text-sell"}>
@@ -61,6 +64,9 @@ export default function SignalsTable({
                 {s.status}
                 {s.peak_tp > 0 && (
                   <span className="text-muted"> · tp{s.peak_tp}</span>
+                )}
+                {s.excluded && (
+                  <span className="text-muted" title={s.excluded_reason ?? "excluded"}> · excluded</span>
                 )}
               </Td>
               <Td

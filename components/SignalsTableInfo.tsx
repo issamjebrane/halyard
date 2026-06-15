@@ -8,6 +8,7 @@ const ROWS: { k: string; d: string }[] = [
   { k: "R / pips", d: "result in risk multiples and in pips ($0.10 each)" },
   { k: "mfe / mae", d: "max favorable / adverse excursion in R — the best and worst the trade ran" },
   { k: "time", d: "when the trader posted the signal" },
+  { k: "· excluded", d: "greyed-out, faded rows. Kept on the record for honesty but NOT counted in the score, equity or analysis — these are backfilled (old) signals, not real forward trades" },
 ];
 
 export default function SignalsTableInfo() {

@@ -29,6 +29,8 @@ const COLS = [
   "closed_at",
   "settled_at",
   "exit_price",
+  "excluded",
+  "excluded_reason",
 ];
 
 function cell(v: unknown): string {
@@ -86,6 +88,8 @@ export async function GET() {
         r.closed_at,
         r.settled_at,
         r.exit_price,
+        r.excluded,
+        r.excluded_reason,
       ]
         .map(cell)
         .join(","),

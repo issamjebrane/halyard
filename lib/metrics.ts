@@ -12,7 +12,8 @@ function closedSorted(signals: Signal[]): Closed[] {
   return signals
     .filter(
       (s) =>
-        s.status === "won" || s.status === "lost" || s.status === "breakeven",
+        !s.excluded &&
+        (s.status === "won" || s.status === "lost" || s.status === "breakeven"),
     )
     .sort((a, b) => {
       const ca = a.closed_at ?? "";
@@ -63,8 +64,8 @@ export function computeMetrics(signals: Signal[]): Metrics {
     profit_factor,
     expectancy,
     cum_r,
-    open: signals.filter((s) => s.status === "open").length,
-    pending: signals.filter((s) => s.status === "pending").length,
+    open: signals.filter((s) => !s.excluded && s.status === "open").length,
+    pending: signals.filter((s) => !s.excluded && s.status === "pending").length,
   };
 }
 

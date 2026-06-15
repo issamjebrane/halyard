@@ -11,7 +11,9 @@ const closedOf = (s: Signal) =>
 // outcome mix, how far price actually ran (peak target), and how much of the
 // favorable excursion (MFE) was actually captured.
 export default function Analysis({ signals }: { signals: Signal[] }) {
-  const closed = signals.filter(closedOf);
+  // backfilled / excluded rows are kept on record but never counted here.
+  const real = signals.filter((s) => !s.excluded);
+  const closed = real.filter(closedOf);
   if (closed.length === 0) {
     return (
       <section className="space-y-3">
@@ -27,7 +29,7 @@ export default function Analysis({ signals }: { signals: Signal[] }) {
   const losses = closed.filter((s) => r(s) < -EPS);
 
   // how far price ran, over everything the engine actually tracked
-  const activated = signals.filter((s) => s.activated_at != null);
+  const activated = real.filter((s) => s.activated_at != null);
   const peak = [0, 1, 2, 3].map((k) => activated.filter((s) => (s.peak_tp ?? 0) === k).length);
   const peakMax = Math.max(1, ...peak);
 
@@ -58,6 +60,29 @@ export default function Analysis({ signals }: { signals: Signal[] }) {
   };
   const holdWin = avgH(wins), holdLoss = avgH(losses);
   const n = closed.length;
+
+  // result distribution — R bucketed into six bands
+  const BUCKETS = [
+    { label: "≤ -1R", cls: "bg-sell" },
+    { label: "-1–0R", cls: "bg-sell/60" },
+    { label: "0R be", cls: "bg-accent" },
+    { label: "0–1R", cls: "bg-buy/50" },
+    { label: "1–2R", cls: "bg-buy/75" },
+    { label: "≥ 2R", cls: "bg-buy" },
+  ];
+  const bucketOf = (x: number) =>
+    x <= -1 - EPS ? 0 : x < -EPS ? 1 : x <= EPS ? 2 : x < 1 ? 3 : x < 2 ? 4 : 5;
+  const dist = [0, 0, 0, 0, 0, 0];
+  for (const s of closed) dist[bucketOf(r(s))]++;
+  const distMax = Math.max(1, ...dist);
+
+  // recent form — last 10 closed (by close time), newest last
+  const byClose = [...closed].sort((a, b) => (a.closed_at ?? "").localeCompare(b.closed_at ?? ""));
+  const recent = byClose.slice(-10);
+  const recentWins = recent.filter((s) => r(s) > EPS).length;
+  const recentCum = recent.reduce((a, s) => a + r(s), 0);
+  const best = closed.reduce((m, s) => Math.max(m, r(s)), -Infinity);
+  const worst = closed.reduce((m, s) => Math.min(m, r(s)), Infinity);
 
   return (
     <section className="space-y-3">
@@ -131,6 +156,44 @@ export default function Analysis({ signals }: { signals: Signal[] }) {
             </tbody>
           </table>
         </Panel>
+
+        {/* result distribution */}
+        <Panel title="result distribution (R)">
+          <ul className="space-y-1.5 font-mono text-xs">
+            {BUCKETS.map((b, i) => (
+              <li key={b.label} className="flex items-center gap-2">
+                <span className="w-12 text-muted">{b.label}</span>
+                <span className="flex h-2 flex-1 bg-background">
+                  <span className={b.cls} style={{ width: `${(dist[i] / distMax) * 100}%` }} />
+                </span>
+                <span className="w-6 text-right tabular-nums text-muted">{dist[i]}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-[10px] text-muted">how many trades finished in each profit/loss band (R = risk multiples).</p>
+        </Panel>
+
+        {/* recent form */}
+        <Panel title="recent form (last 10)">
+          <div className="flex flex-wrap gap-1">
+            {recent.map((s) => (
+              <span
+                key={s.id}
+                title={`#${s.id} ${fmtR(r(s))}`}
+                className={`inline-block h-3 w-3 ${
+                  r(s) > EPS ? "bg-buy" : r(s) < -EPS ? "bg-sell" : "bg-accent"
+                }`}
+              />
+            ))}
+          </div>
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-2 font-mono text-xs">
+            <Kv k="last 10 win%" v={recent.length ? `${((recentWins / recent.length) * 100).toFixed(0)}%` : "—"} />
+            <Kv k="last 10 cum R" v={recent.length ? fmtR(recentCum) : "—"} cls={recentCum >= 0 ? "text-buy" : "text-sell"} />
+            <Kv k="best trade" v={Number.isFinite(best) ? fmtR(best) : "—"} cls="text-buy" />
+            <Kv k="worst trade" v={Number.isFinite(worst) ? fmtR(worst) : "—"} cls="text-sell" />
+          </dl>
+          <p className="mt-2 text-[10px] text-muted">each square is one of the last 10 closed trades, oldest → newest.</p>
+        </Panel>
       </div>
 
       <p className="font-mono text-[11px] text-muted">
@@ -151,6 +214,9 @@ function Heading() {
         <span className="mt-1 block"><span className="font-mono text-foreground">peak target</span> — the furthest TP price reached on each trade</span>
         <span className="mt-1 block"><span className="font-mono text-foreground">capture</span> — average captured R vs the average max-favorable move (MFE); RATCHET aims to keep more of it</span>
         <span className="mt-1 block"><span className="font-mono text-foreground">by direction</span> — buy vs sell performance</span>
+        <span className="mt-1 block"><span className="font-mono text-foreground">result distribution</span> — how many trades landed in each R band (big losers on the left, big winners on the right)</span>
+        <span className="mt-1 block"><span className="font-mono text-foreground">recent form</span> — the last 10 closed trades, newest on the right: green = win, red = loss, amber = break-even</span>
+        <span className="mt-2 block text-muted">backfilled / excluded signals are never counted here.</span>
       </InfoTip>
     </h2>
   );

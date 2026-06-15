@@ -10,6 +10,7 @@ import EngineTapeInfo from "@/components/EngineTapeInfo";
 import SignalsTableInfo from "@/components/SignalsTableInfo";
 import InfoTip from "@/components/InfoTip";
 import GoldChart from "@/components/GoldChart";
+import LiveData from "@/components/LiveData";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +43,9 @@ export default async function PublicReport({
     trader_name: r.profiles?.username,
   }));
 
-  const featured = signals[0] ?? null;
+  // the public record never shows excluded (backfill) rows
+  const visible = signals.filter((s) => !s.excluded);
+  const featured = visible[0] ?? null;
   let events: SignalEvent[] = [];
   if (featured) {
     const { data: ev } = await svc
@@ -58,6 +61,7 @@ export default async function PublicReport({
 
   return (
     <div className="space-y-8">
+      <LiveData pollMs={15000} />
       <div>
         <h1 className="font-mono text-sm">verified track record · XAU/USD</h1>
         <p className="mt-1 text-xs text-muted">
@@ -100,7 +104,7 @@ export default async function PublicReport({
           <span>signals</span>
           <SignalsTableInfo />
         </h2>
-        <SignalsTable signals={signals} showTrader />
+        <SignalsTable signals={visible} showTrader />
       </section>
     </div>
   );
