@@ -82,6 +82,11 @@ export default function OpsPanel({
                 <span className="text-muted">#{e.signal_id}</span>
                 <span className={EXEC_CLASS[e.status]}>{e.status}</span>
                 {e.lots != null && <span className="tabular-nums text-muted">{fmt(e.lots)} lots</span>}
+                {e.profit != null && (
+                  <span className={`tabular-nums ${e.profit > 0 ? "text-buy" : e.profit < 0 ? "text-sell" : "text-muted"}`}>
+                    {e.profit >= 0 ? "+" : ""}{fmt(e.profit)}
+                  </span>
+                )}
                 {e.detail && <span className="text-muted">· {e.detail}</span>}
               </span>
               <TimeStamp iso={e.created_at} className="text-muted" />

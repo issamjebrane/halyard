@@ -14,6 +14,7 @@ import SignalsExplorer from "@/components/SignalsExplorer";
 import SignalTape from "@/components/SignalTape";
 import OpsPanel from "@/components/OpsPanel";
 import AccountCurve from "@/components/AccountCurve";
+import Reconciliation from "@/components/Reconciliation";
 import SourceBreakdown from "@/components/SourceBreakdown";
 import Analysis from "@/components/Analysis";
 import EngineTapeInfo from "@/components/EngineTapeInfo";
@@ -130,6 +131,8 @@ export default async function AdminPage() {
       <Analysis signals={signals} />
 
       <OpsPanel ingest={ingest} exec={exec} ea={ea} />
+
+      <Reconciliation signals={signals} executions={executions} />
 
       {notifications.length > 0 && (
         <section className="space-y-3">

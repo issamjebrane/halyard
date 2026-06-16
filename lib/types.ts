@@ -73,6 +73,8 @@ export type Execution = {
   tickets: number[];
   lots: number | null;
   entry_fill: number | null;
+  profit: number | null; // realized P&L (account currency), set by the EA on close
+  exit_fill: number | null; // avg close price, set by the EA on close
   detail: string | null;
   created_at: string;
   updated_at: string;
