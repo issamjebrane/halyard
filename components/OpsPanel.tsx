@@ -15,11 +15,11 @@ const EXEC_CLASS: Record<Execution["status"], string> = {
 // Visibility into the automated pipeline: the MT5 engine heartbeat, Telegram
 // ingest, and what the copier executed. Pure presentational.
 export default function OpsPanel({
-  ea,
+  engines,
   ingest,
   exec,
 }: {
-  ea: Mt5Status | null;
+  engines: Mt5Status[];
   ingest: { lastAt: string | null; last24h: number; total: number };
   exec: { counts: Partial<Record<Execution["status"], number>>; total: number; recent: Execution[] };
 }) {
@@ -37,8 +37,10 @@ export default function OpsPanel({
       </h2>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        {/* engine heartbeat — live (self-updating client island) */}
-        <EngineCard initial={ea} />
+        {/* engine heartbeats — one per copier instance (self-updating client islands) */}
+        {(engines.length ? engines : [null]).map((e, i) => (
+          <EngineCard key={e?.id ?? i} initial={e} />
+        ))}
 
         {/* ingest */}
         <div className="border border-border bg-surface p-4">

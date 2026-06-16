@@ -43,7 +43,7 @@ export default function Reconciliation({
         <table className="w-full border-collapse font-mono text-xs">
           <thead>
             <tr className="border-b border-border bg-surface text-left text-muted">
-              <Th>#</Th><Th>dir</Th><Th>lots</Th><Th>entry → fill</Th><Th>slip</Th>
+              <Th>#</Th><Th>acct</Th><Th>dir</Th><Th>lots</Th><Th>entry → fill</Th><Th>slip</Th>
               <Th>signal R</Th><Th>ea result</Th><Th>real €</Th>
             </tr>
           </thead>
@@ -53,6 +53,7 @@ export default function Reconciliation({
               return (
                 <tr key={e.id} className="border-b border-border/60 last:border-0">
                   <Td className="text-muted">{e.signal_id}</Td>
+                  <Td className="tabular-nums text-muted">{e.account ?? "—"}</Td>
                   <Td className={s.direction === "buy" ? "text-buy" : "text-sell"}>{s.direction}</Td>
                   <Td>{fmt(e.lots)}</Td>
                   <Td className="text-muted">{fmt(s.entry_price)} → {fmt(e.entry_fill)}</Td>

@@ -103,6 +103,7 @@ export type SignalEvent = {
 // Live MT5 engine status, upserted by the EA every poll (heartbeat + broker price).
 export type Mt5Status = {
   id: number;
+  label: string | null; // engine name, e.g. "gold vip" (slot 1) or "simon" (slot 2)
   account: string | null;
   symbol: string | null;
   bid: number | null;

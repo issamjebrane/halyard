@@ -13,14 +13,16 @@
 //|        poll, and a daily-loss / max-trades-per-day kill switch.  |
 //+------------------------------------------------------------------+
 #property strict
-#property version   "2.30"
-#property description "Halyard Gold VIP -> MT5 copier: RATCHET exit, heartbeat, daily kill-switch, close reporting."
+#property version   "2.40"
+#property description "Halyard -> MT5 copier: RATCHET, heartbeat, daily kill-switch, close reporting, multi-instance (telegram / simon)."
 
 #include <Trade/Trade.mqh>
 
 input string InpSupabaseUrl     = "https://gswxrgoeiqszaawzltwm.supabase.co";
 input string InpServiceKey      = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzd3hyZ29laXFzemFhd3psdHdtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDU5NjU2NCwiZXhwIjoyMDk2MTcyNTY0fQ.1mmZMTN2KdkJNRKGuVQniYCPiYblU0iJqmpBgRVBMdw";
-input string InpSource          = "telegram:gold_vip";
+input string InpSource          = "telegram:gold_vip"; // signal source; "manual"/"simon"/"" = manual signals (source IS NULL)
+input int    InpStatusId        = 1;         // heartbeat slot in mt5_status (1 = telegram engine, 2 = simon engine, ...)
+input string InpLabel           = "gold vip";// label shown for this engine on the dashboard
 input string InpSymbol          = "XAUUSD";  // broker's gold symbol; empty = chart symbol
 input double InpRiskPct         = 3.0;       // % equity risked at the ORIGINAL stop (doc: 2% start, 4-5% optimum)
 input double InpMaxExposurePct  = 15.0;      // cap on total concurrent risk across open positions (doc §9.4)
@@ -350,7 +352,7 @@ void ReportCloses()
 void Heartbeat()
 {
    double bid=SymbolInfoDouble(g_sym,SYMBOL_BID), ask=SymbolInfoDouble(g_sym,SYMBOL_ASK);
-   string body="{\"id\":1,\"account\":\""+(string)AccountInfoInteger(ACCOUNT_LOGIN)+
+   string body="{\"id\":"+(string)InpStatusId+",\"label\":\""+InpLabel+"\",\"account\":\""+(string)AccountInfoInteger(ACCOUNT_LOGIN)+
      "\",\"symbol\":\""+g_sym+"\",\"bid\":"+DoubleToString(bid,2)+",\"ask\":"+DoubleToString(ask,2)+
      ",\"open_positions\":"+(string)CountMine()+
      ",\"equity\":"+DoubleToString(AccountInfoDouble(ACCOUNT_EQUITY),2)+
@@ -364,7 +366,9 @@ void Poll()
    string done;
    if(!HttpGet(InpSupabaseUrl+"/rest/v1/executions?select=signal_id",done)){ g_status="exec read failed"; Status(); return; }
    string sig;
-   string url=InpSupabaseUrl+"/rest/v1/signals?source=eq."+Enc(InpSource)+
+   // "manual"/"simon"/empty => Simon's manually-raised signals (source IS NULL); otherwise an exact source match
+   string srcClause=(InpSource=="" || InpSource=="manual" || InpSource=="simon") ? "source=is.null" : "source=eq."+Enc(InpSource);
+   string url=InpSupabaseUrl+"/rest/v1/signals?"+srcClause+
               "&status=eq.open&select=id,direction,entry_price,stop_loss,tp1,tp2,tp3&order=id.asc";
    if(!HttpGet(url,sig)){ g_status="signal read failed"; Status(); return; }
 

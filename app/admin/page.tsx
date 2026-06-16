@@ -15,6 +15,7 @@ import SignalTape from "@/components/SignalTape";
 import OpsPanel from "@/components/OpsPanel";
 import AccountCurve from "@/components/AccountCurve";
 import Reconciliation from "@/components/Reconciliation";
+import EngineCompare from "@/components/EngineCompare";
 import SourceBreakdown from "@/components/SourceBreakdown";
 import Analysis from "@/components/Analysis";
 import EngineTapeInfo from "@/components/EngineTapeInfo";
@@ -78,8 +79,10 @@ export default async function AdminPage() {
   const ingest = { lastAt: tg[0]?.created_at ?? null, last24h, total: tg.length };
   const exec = { counts: execCounts, total: executions.length, recent: executions.slice(0, 6) };
 
-  const { data: stData } = await sb.from("mt5_status").select("*").eq("id", 1).maybeSingle();
-  const ea = (stData ?? null) as Mt5Status | null;
+  const { data: stData } = await sb.from("mt5_status").select("*").order("id", { ascending: true });
+  const engines = (stData ?? []) as Mt5Status[];
+  const acctLabels: Record<string, string> = {};
+  for (const e of engines) if (e.account) acctLabels[e.account] = e.label ?? "";
 
   const { data: bh } = await sb
     .from("account_balance_history")
@@ -115,6 +118,8 @@ export default async function AdminPage() {
         <Metric k="win rate" v={metrics.total ? `${metrics.win_rate.toFixed(0)}%` : "—"} />
       </section>
 
+      <EngineCompare signals={signals} engines={engines} balance={balanceHistory} />
+
       <section className="space-y-3">
         <h2 className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted">
           <span>equity (R)</span>
@@ -126,11 +131,11 @@ export default async function AdminPage() {
         <EquityChart equity={equity} />
       </section>
 
-      <AccountCurve points={balanceHistory} />
+      <AccountCurve points={balanceHistory} labels={acctLabels} />
 
       <Analysis signals={signals} />
 
-      <OpsPanel ingest={ingest} exec={exec} ea={ea} />
+      <OpsPanel ingest={ingest} exec={exec} engines={engines} />
 
       <Reconciliation signals={signals} executions={executions} />
 

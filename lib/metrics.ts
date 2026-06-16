@@ -76,7 +76,11 @@ export type Equity =
       path: string;
       w: number;
       h: number;
+      pad: number;
       zero_y: string;
+      lo: number;
+      hi: number;
+      trades: number;
       final: number;
       x0: string;
       xn: string;
@@ -111,7 +115,11 @@ export function buildEquity(signals: Signal[]): Equity {
     path,
     w,
     h,
+    pad,
     zero_y: y(0).toFixed(1),
+    lo,
+    hi,
+    trades: rows.length,
     final: cum,
     x0: x(0).toFixed(1),
     xn: x(n - 1).toFixed(1),

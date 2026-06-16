@@ -16,25 +16,28 @@ import InfoTip from "./InfoTip";
 export default function EngineCard({ initial }: { initial: Mt5Status | null }) {
   const [live, setLive] = useState<Mt5Status | null>(null);
   const [ageS, setAgeS] = useState<number | null>(null);
+  const slotId = initial?.id ?? null;
 
-  // realtime: capture the newest heartbeat as it streams in
+  // realtime: capture THIS engine's newest heartbeat as it streams in (scoped to
+  // its own mt5_status slot so a second engine's heartbeat can't overwrite it)
   useEffect(() => {
+    if (slotId == null) return;
     const sb = supabaseBrowser();
     const ch = sb
-      .channel("engine:mt5_status")
+      .channel(`engine:mt5_status:${slotId}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "mt5_status" },
+        { event: "*", schema: "public", table: "mt5_status", filter: `id=eq.${slotId}` },
         (p) => {
           const row = p.new as Mt5Status | undefined;
-          if (row && row.id != null) setLive(row);
+          if (row && row.id === slotId) setLive(row);
         },
       )
       .subscribe();
     return () => {
       sb.removeChannel(ch);
     };
-  }, []);
+  }, [slotId]);
 
   // whichever heartbeat is newer wins — no prop→state syncing needed.
   // compare parsed instants: the realtime payload sends timestamptz as the raw
@@ -60,7 +63,7 @@ export default function EngineCard({ initial }: { initial: Mt5Status | null }) {
 
   const dot =
     ageS == null ? "bg-muted" : ageS < 30 ? "bg-buy" : ageS < 120 ? "bg-accent" : "bg-sell";
-  const label =
+  const statusLabel =
     ageS == null ? "offline" : ageS < 30 ? "live" : ageS < 120 ? "lagging" : "down";
 
   return (
@@ -68,10 +71,10 @@ export default function EngineCard({ initial }: { initial: Mt5Status | null }) {
       <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted">
         <span
           className={`inline-block h-1.5 w-1.5 rounded-full ${dot} ${
-            label === "live" ? "animate-pulse" : ""
+            statusLabel === "live" ? "animate-pulse" : ""
           }`}
         />
-        <span>engine · mt5 {label}</span>
+        <span>{ea?.label ?? "engine"} · {statusLabel}</span>
         <InfoTip label="What the engine status means" width="w-72">
           <span className="mb-2 block text-foreground">The MT5 copier checks in every few seconds with its broker price, equity and open trades. This is live — it updates on its own.</span>
           <span className="mt-1 block"><span className="text-buy">live</span> — checked in under 30s ago (all good)</span>
@@ -81,6 +84,7 @@ export default function EngineCard({ initial }: { initial: Mt5Status | null }) {
       </div>
       {ea ? (
         <dl className="mt-3 space-y-2 font-mono text-xs">
+          <Row k="account"><span className="tabular-nums text-muted">{ea.account ?? "—"}</span></Row>
           <Row k="heartbeat"><TimeStamp iso={ea.updated_at} /></Row>
           <Row k="price"><span className="tabular-nums">{fmt(ea.bid)}</span></Row>
           <Row k="equity"><span className="tabular-nums">{fmt(ea.equity)} / {fmt(ea.balance)}</span></Row>
