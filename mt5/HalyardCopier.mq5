@@ -19,7 +19,7 @@
 #include <Trade/Trade.mqh>
 
 input string InpSupabaseUrl     = "https://gswxrgoeiqszaawzltwm.supabase.co";
-input string InpServiceKey      = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzd3hyZ29laXFzemFhd3psdHdtIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDU5NjU2NCwiZXhwIjoyMDk2MTcyNTY0fQ.1mmZMTN2KdkJNRKGuVQniYCPiYblU0iJqmpBgRVBMdw";
+input string InpServiceKey      = "";  // set at attach-time (Inputs), or paste locally before compiling. NEVER commit the real key.
 input string InpSource          = "telegram:gold_vip"; // signal source; "manual"/"simon"/"" = manual signals (source IS NULL)
 input int    InpStatusId        = 1;         // heartbeat slot in mt5_status (1 = telegram engine, 2 = simon engine, ...)
 input string InpLabel           = "gold vip";// label shown for this engine on the dashboard
