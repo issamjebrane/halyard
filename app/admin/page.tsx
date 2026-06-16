@@ -5,7 +5,7 @@ import { getProfile } from "@/lib/supabase/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getShareToken } from "@/lib/share";
 import { computeMetrics, computeTrust, buildEquity } from "@/lib/metrics";
-import type { Signal, Notification, SignalEvent, Execution, Mt5Status } from "@/lib/types";
+import type { Signal, Notification, SignalEvent, Execution, Mt5Status, AccountBalancePoint } from "@/lib/types";
 import { fmtR, countWithin } from "@/lib/format";
 import TrustPanel from "@/components/TrustPanel";
 import LiveData from "@/components/LiveData";
@@ -13,6 +13,7 @@ import EquityChart from "@/components/EquityChart";
 import SignalsExplorer from "@/components/SignalsExplorer";
 import SignalTape from "@/components/SignalTape";
 import OpsPanel from "@/components/OpsPanel";
+import AccountCurve from "@/components/AccountCurve";
 import SourceBreakdown from "@/components/SourceBreakdown";
 import Analysis from "@/components/Analysis";
 import EngineTapeInfo from "@/components/EngineTapeInfo";
@@ -79,6 +80,13 @@ export default async function AdminPage() {
   const { data: stData } = await sb.from("mt5_status").select("*").eq("id", 1).maybeSingle();
   const ea = (stData ?? null) as Mt5Status | null;
 
+  const { data: bh } = await sb
+    .from("account_balance_history")
+    .select("*")
+    .order("id", { ascending: true })
+    .limit(1000);
+  const balanceHistory = (bh ?? []) as AccountBalancePoint[];
+
   const token = await getShareToken();
   const h = await headers();
   const base = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
@@ -86,7 +94,7 @@ export default async function AdminPage() {
 
   return (
     <div className="space-y-8">
-      <LiveData tables={["signals", "executions", "notifications", "signal_events"]} pollMs={20000} />
+      <LiveData tables={["signals", "executions", "notifications", "signal_events", "account_balance_history"]} pollMs={20000} />
       <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-muted">
         <span className="inline-block h-1.5 w-1.5 rounded-full bg-buy animate-pulse" />
         live · this dashboard updates on its own — no need to reload
@@ -116,6 +124,8 @@ export default async function AdminPage() {
         </h2>
         <EquityChart equity={equity} />
       </section>
+
+      <AccountCurve points={balanceHistory} />
 
       <Analysis signals={signals} />
 

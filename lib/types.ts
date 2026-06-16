@@ -117,6 +117,17 @@ export type PriceCache = {
   fetched_at: string | null;
 };
 
+// One snapshot of the REAL broker account, recorded whenever the EA heartbeat
+// reports a balance change (a closed trade) — the account's actual equity curve.
+export type AccountBalancePoint = {
+  id: number;
+  account: string | null;
+  balance: number | null;
+  equity: number | null;
+  open_positions: number | null;
+  recorded_at: string;
+};
+
 export type Notification = {
   id: number;
   type: string;
