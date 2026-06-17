@@ -39,3 +39,12 @@ body {
   background: var(--accent);
   color: var(--background);
 }
+
+/* hide the scrollbar on the horizontally-scrollable admin tab bar */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}

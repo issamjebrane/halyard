@@ -22,6 +22,7 @@ import EngineTapeInfo from "@/components/EngineTapeInfo";
 import SignalsTableInfo from "@/components/SignalsTableInfo";
 import InfoTip from "@/components/InfoTip";
 import TimeStamp from "@/components/TimeStamp";
+import AdminTabs from "@/components/AdminTabs";
 import { regenerateShare } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -97,120 +98,132 @@ export default async function AdminPage() {
   const shareUrl = `${base}/p/${token}`;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <LiveData tables={["signals", "executions", "notifications", "signal_events", "account_balance_history"]} pollMs={20000} />
       <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-muted">
         <span className="inline-block h-1.5 w-1.5 rounded-full bg-buy animate-pulse" />
         live · this dashboard updates on its own — no need to reload
       </p>
-      <TrustPanel trust={trust} />
 
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        <Metric k="closed" v={String(metrics.total)} />
-        <Metric k="open" v={String(metrics.open)} />
-        <Metric k="pending" v={String(metrics.pending)} />
-        <Metric
-          k="cumulative"
-          v={fmtR(metrics.cum_r)}
-          tone={metrics.cum_r > 0 ? "buy" : metrics.cum_r < 0 ? "sell" : undefined}
-        />
-        <Metric k="last 24h" v={String(last24h)} />
-        <Metric k="win rate" v={metrics.total ? `${metrics.win_rate.toFixed(0)}%` : "—"} />
-      </section>
+      <AdminTabs
+        overview={
+          <>
+            <TrustPanel trust={trust} />
+            <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+              <Metric k="closed" v={String(metrics.total)} />
+              <Metric k="open" v={String(metrics.open)} />
+              <Metric k="pending" v={String(metrics.pending)} />
+              <Metric
+                k="cumulative"
+                v={fmtR(metrics.cum_r)}
+                tone={metrics.cum_r > 0 ? "buy" : metrics.cum_r < 0 ? "sell" : undefined}
+              />
+              <Metric k="last 24h" v={String(last24h)} />
+              <Metric k="win rate" v={metrics.total ? `${metrics.win_rate.toFixed(0)}%` : "—"} />
+            </section>
+          </>
+        }
+        engines={<EngineCompare signals={signals} engines={engines} balance={balanceHistory} />}
+        curves={
+          <>
+            <section className="space-y-3">
+              <h2 className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted">
+                <span>equity (R)</span>
+                <InfoTip label="What the equity curve shows">
+                  Running total of result (in R) across closed trades, in the order
+                  they closed. Up and to the right is good; the dashed line is break-even.
+                </InfoTip>
+              </h2>
+              <EquityChart equity={equity} />
+            </section>
+            <AccountCurve points={balanceHistory} labels={acctLabels} />
+          </>
+        }
+        analysis={<Analysis signals={signals} />}
+        ops={
+          <>
+            <OpsPanel ingest={ingest} exec={exec} engines={engines} />
 
-      <EngineCompare signals={signals} engines={engines} balance={balanceHistory} />
+            {notifications.length > 0 && (
+              <section className="space-y-3">
+                <h2 className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted">
+                  <span>alerts</span>
+                  <InfoTip label="What alerts are">
+                    Engine notifications: a new signal was posted, or a signal closed
+                    (won/lost). Newest first.
+                  </InfoTip>
+                </h2>
+                <ul className="border border-border bg-surface font-mono text-xs">
+                  {notifications.map((n) => (
+                    <li
+                      key={n.id}
+                      className="flex justify-between gap-4 border-b border-border/60 px-4 py-2 last:border-0"
+                    >
+                      <span className={n.type === "signal_closed" ? "text-foreground" : "text-muted"}>
+                        {n.message}
+                      </span>
+                      <TimeStamp iso={n.created_at} className="text-muted" />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
 
-      <section className="space-y-3">
-        <h2 className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted">
-          <span>equity (R)</span>
-          <InfoTip label="What the equity curve shows">
-            Running total of result (in R) across closed trades, in the order
-            they closed. Up and to the right is good; the dashed line is break-even.
-          </InfoTip>
-        </h2>
-        <EquityChart equity={equity} />
-      </section>
+            {events.length > 0 && (
+              <section className="space-y-3">
+                <h2 className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted">
+                  <span>engine activity</span>
+                  <EngineTapeInfo />
+                </h2>
+                <SignalTape events={events} />
+              </section>
+            )}
+          </>
+        }
+        ledger={
+          <>
+            <Reconciliation signals={signals} executions={executions} />
 
-      <AccountCurve points={balanceHistory} labels={acctLabels} />
+            <SourceBreakdown signals={signals} />
 
-      <Analysis signals={signals} />
+            <section className="space-y-3 border border-border bg-surface p-5">
+              <h2 className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted">
+                <span>public record</span>
+                <InfoTip label="What the public record is">
+                  A read-only, shareable page of the verified track record. Anyone with
+                  the link can view it — no login. <span className="text-foreground">rotate link</span>{" "}
+                  revokes the old URL; <span className="text-foreground">export csv</span>{" "}
+                  downloads every signal.
+                </InfoTip>
+              </h2>
+              <div className="flex flex-wrap items-center gap-3">
+                <code className="break-all border border-border bg-background px-3 py-2 font-mono text-xs">
+                  {shareUrl}
+                </code>
+                <Link href={`/p/${token}`} className="border border-border px-3 py-2 text-xs hover:border-foreground">
+                  open
+                </Link>
+                <a href="/api/export.csv" className="border border-border px-3 py-2 text-xs hover:border-foreground">
+                  export csv
+                </a>
+                <form action={regenerateShare}>
+                  <button type="submit" className="border border-border px-3 py-2 text-xs text-sell hover:border-sell">
+                    rotate link
+                  </button>
+                </form>
+              </div>
+            </section>
 
-      <OpsPanel ingest={ingest} exec={exec} engines={engines} />
-
-      <Reconciliation signals={signals} executions={executions} />
-
-      {notifications.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted">
-            <span>alerts</span>
-            <InfoTip label="What alerts are">
-              Engine notifications: a new signal was posted, or a signal closed
-              (won/lost). Newest first.
-            </InfoTip>
-          </h2>
-          <ul className="border border-border bg-surface font-mono text-xs">
-            {notifications.map((n) => (
-              <li
-                key={n.id}
-                className="flex justify-between gap-4 border-b border-border/60 px-4 py-2 last:border-0"
-              >
-                <span className={n.type === "signal_closed" ? "text-foreground" : "text-muted"}>
-                  {n.message}
-                </span>
-                <TimeStamp iso={n.created_at} className="text-muted" />
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <SourceBreakdown signals={signals} />
-
-      {events.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted">
-            <span>engine activity</span>
-            <EngineTapeInfo />
-          </h2>
-          <SignalTape events={events} />
-        </section>
-      )}
-
-      <section className="space-y-3 border border-border bg-surface p-5">
-        <h2 className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted">
-          <span>public record</span>
-          <InfoTip label="What the public record is">
-            A read-only, shareable page of the verified track record. Anyone with
-            the link can view it — no login. <span className="text-foreground">rotate link</span>{" "}
-            revokes the old URL; <span className="text-foreground">export csv</span>{" "}
-            downloads every signal.
-          </InfoTip>
-        </h2>
-        <div className="flex flex-wrap items-center gap-3">
-          <code className="break-all border border-border bg-background px-3 py-2 font-mono text-xs">
-            {shareUrl}
-          </code>
-          <Link href={`/p/${token}`} className="border border-border px-3 py-2 text-xs hover:border-foreground">
-            open
-          </Link>
-          <a href="/api/export.csv" className="border border-border px-3 py-2 text-xs hover:border-foreground">
-            export csv
-          </a>
-          <form action={regenerateShare}>
-            <button type="submit" className="border border-border px-3 py-2 text-xs text-sell hover:border-sell">
-              rotate link
-            </button>
-          </form>
-        </div>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted">
-          <span>all signals</span>
-          <SignalsTableInfo />
-        </h2>
-        <SignalsExplorer signals={signals} showTrader />
-      </section>
+            <section className="space-y-3">
+              <h2 className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted">
+                <span>all signals</span>
+                <SignalsTableInfo />
+              </h2>
+              <SignalsExplorer signals={signals} showTrader />
+            </section>
+          </>
+        }
+      />
     </div>
   );
 }
