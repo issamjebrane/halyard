@@ -94,6 +94,13 @@ function engineBlock(
 
   const bh = balances.filter((p) => account && p.account === account);
 
+  // performance over time — cumulative R after each closed trade (in close order)
+  // and the real account balance over time. Index-ordered series for sparklines.
+  const closedByTime = [...closed].sort((a, b) => (a.closed_at ?? "").localeCompare(b.closed_at ?? ""));
+  let cum = 0;
+  const equity_curve = [0, ...closedByTime.map((s) => ((cum += rOf(s)), r2(cum)))];
+  const balance_curve = bh.map((p) => p.balance ?? 0);
+
   const sorted = [...closed].sort((a, b) => rOf(b) - rOf(a));
   const leaks = [...wm].sort((a, b) => (b.mfe_r ?? 0) - rOf(b) - ((a.mfe_r ?? 0) - rOf(a)));
 
@@ -153,10 +160,12 @@ function engineBlock(
     },
     by_direction: (["buy", "sell"] as const).map((d) => {
       const sub = closed.filter((s) => s.direction === d);
-      const cum = sub.reduce((a, s) => a + rOf(s), 0);
+      const c = sub.reduce((a, s) => a + rOf(s), 0);
       const w = sub.filter((s) => rOf(s) > EPS).length;
-      return { direction: d, n: sub.length, win_rate: sub.length ? r1((w / sub.length) * 100) : 0, cum_r: r2(cum), expectancy: sub.length ? r2(cum / sub.length) : 0 };
+      return { direction: d, n: sub.length, win_rate: sub.length ? r1((w / sub.length) * 100) : 0, cum_r: r2(c), expectancy: sub.length ? r2(c / sub.length) : 0 };
     }),
+    equity_curve,
+    balance_curve,
     notable: {
       best: sorted.slice(0, 3).map((s) => tradeRow(s, execBySignal.get(s.id))),
       worst: sorted.slice(-3).reverse().map((s) => tradeRow(s, execBySignal.get(s.id))),

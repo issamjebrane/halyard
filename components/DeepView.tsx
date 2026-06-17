@@ -19,6 +19,8 @@ type Engine = {
     tp_giveback: { count: number };
   };
   by_direction: Dir[];
+  equity_curve: number[];
+  balance_curve: number[];
 };
 export type Stats = {
   totals: { closed: number };
@@ -51,6 +53,16 @@ export default function DeepView({ stats }: { stats: Stats }) {
         {stats.engines.map((e) => (
           <EngineCard key={e.name} e={e} />
         ))}
+      </div>
+
+      {/* performance over time — cumulative R per engine */}
+      <div className="space-y-3">
+        <div className="text-[10px] uppercase tracking-wider text-muted">performance over time · cumulative R</div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {stats.engines.map((e) => (
+            <TimeCurve key={e.name} e={e} />
+          ))}
+        </div>
       </div>
 
       {/* where they missed — the signature chart */}
@@ -139,6 +151,57 @@ function MissedBar({ e }: { e: Engine }) {
         kept {total > 0 ? ((captured / total) * 100).toFixed(0) : 0}% of {total.toFixed(1)}R available
       </p>
     </div>
+  );
+}
+
+function TimeCurve({ e }: { e: Engine }) {
+  const series = e.equity_curve ?? [];
+  const final = series.length ? series[series.length - 1] : 0;
+  const bal = e.balance_curve ?? [];
+  const balNet = bal.length > 1 ? bal[bal.length - 1] - bal[0] : null;
+  return (
+    <div className="border border-border bg-surface p-4">
+      <div className="mb-2 flex items-baseline justify-between font-mono text-xs">
+        <span className="text-[10px] uppercase tracking-wider text-foreground">{e.label}</span>
+        <span className="flex gap-3 text-[10px] uppercase tracking-wider text-muted">
+          <span>
+            R <span className={`tabular-nums ${tone(final)}`}>{fr(final)}</span>
+          </span>
+          {balNet != null && (
+            <span>
+              € <span className={`tabular-nums ${tone(balNet)}`}>{fe(balNet)}</span>
+            </span>
+          )}
+        </span>
+      </div>
+      <Spark series={series} />
+    </div>
+  );
+}
+
+function Spark({ series }: { series: number[] }) {
+  if (series.length < 2) {
+    return <p className="font-mono text-[10px] text-muted">not enough closed trades yet to chart.</p>;
+  }
+  const w = 320,
+    h = 64,
+    pad = 6;
+  let lo = Math.min(0, ...series),
+    hi = Math.max(0, ...series);
+  if (hi - lo < 1e-9) {
+    hi += 1;
+    lo -= 1;
+  }
+  const n = series.length;
+  const x = (i: number) => pad + (w - 2 * pad) * (i / (n - 1));
+  const y = (v: number) => h - pad - (h - 2 * pad) * ((v - lo) / (hi - lo));
+  const path = series.map((v, i) => (i === 0 ? "M" : "L") + `${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(" ");
+  const final = series[series.length - 1];
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="w-full" preserveAspectRatio="none">
+      <line x1={pad} y1={y(0).toFixed(1)} x2={w - pad} y2={y(0).toFixed(1)} className="stroke-border" strokeWidth="1" strokeDasharray="3 3" />
+      <path d={path} fill="none" className={final >= 0 ? "stroke-buy" : "stroke-sell"} strokeWidth="1.5" />
+    </svg>
   );
 }
 
