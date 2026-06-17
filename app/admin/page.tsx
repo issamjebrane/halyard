@@ -23,6 +23,7 @@ import SignalsTableInfo from "@/components/SignalsTableInfo";
 import InfoTip from "@/components/InfoTip";
 import TimeStamp from "@/components/TimeStamp";
 import AdminTabs from "@/components/AdminTabs";
+import LedgerSummary from "@/components/LedgerSummary";
 import { regenerateShare } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -79,6 +80,16 @@ export default async function AdminPage() {
   const last24h = countWithin(signals.map((s) => s.created_at));
   const ingest = { lastAt: tg[0]?.created_at ?? null, last24h, total: tg.length };
   const exec = { counts: execCounts, total: executions.length, recent: executions.slice(0, 6) };
+
+  // broker-truth realized P&L for the ledger record summary — same basis as the
+  // Reconciliation footer: executions the EA actually traded (placed/closed/breakeven)
+  // whose signal still exists, profit set on close. The signal-id match keeps this
+  // total identical to the reconciliation table's realized footer.
+  const TRADED = new Set<Execution["status"]>(["placed", "closed", "breakeven"]);
+  const signalIds = new Set(signals.map((s) => s.id));
+  const tradedExec = executions.filter((e) => TRADED.has(e.status) && signalIds.has(e.signal_id));
+  const realized = tradedExec.reduce((a, e) => a + (e.profit ?? 0), 0);
+  const settled = tradedExec.filter((e) => e.profit != null).length;
 
   const { data: stData } = await sb.from("mt5_status").select("*").order("id", { ascending: true });
   const engines = (stData ?? []) as Mt5Status[];
@@ -182,11 +193,29 @@ export default async function AdminPage() {
         }
         ledger={
           <>
+            <LedgerSummary
+              signals={signals.length}
+              closed={metrics.total}
+              open={metrics.open}
+              winRate={metrics.win_rate}
+              cumR={metrics.cum_r}
+              realized={realized}
+              settled={settled}
+            />
+
+            <section className="space-y-3">
+              <h2 className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted">
+                <span>all signals</span>
+                <SignalsTableInfo />
+              </h2>
+              <SignalsExplorer signals={signals} showTrader />
+            </section>
+
             <Reconciliation signals={signals} executions={executions} />
 
             <SourceBreakdown signals={signals} />
 
-            <section className="space-y-3 border border-border bg-surface p-5">
+            <section className="space-y-2">
               <h2 className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted">
                 <span>public record</span>
                 <InfoTip label="What the public record is">
@@ -196,30 +225,22 @@ export default async function AdminPage() {
                   downloads every signal.
                 </InfoTip>
               </h2>
-              <div className="flex flex-wrap items-center gap-3">
-                <code className="break-all border border-border bg-background px-3 py-2 font-mono text-xs">
+              <div className="flex flex-wrap items-center gap-2 font-mono text-xs">
+                <code className="min-w-0 flex-1 truncate border border-border bg-surface px-3 py-2 text-muted">
                   {shareUrl}
                 </code>
-                <Link href={`/p/${token}`} className="border border-border px-3 py-2 text-xs hover:border-foreground">
+                <Link href={`/p/${token}`} className="border border-border px-3 py-2 hover:border-foreground">
                   open
                 </Link>
-                <a href="/api/export.csv" className="border border-border px-3 py-2 text-xs hover:border-foreground">
+                <a href="/api/export.csv" className="border border-border px-3 py-2 hover:border-foreground">
                   export csv
                 </a>
                 <form action={regenerateShare}>
-                  <button type="submit" className="border border-border px-3 py-2 text-xs text-sell hover:border-sell">
+                  <button type="submit" className="border border-border px-3 py-2 text-sell hover:border-sell">
                     rotate link
                   </button>
                 </form>
               </div>
-            </section>
-
-            <section className="space-y-3">
-              <h2 className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted">
-                <span>all signals</span>
-                <SignalsTableInfo />
-              </h2>
-              <SignalsExplorer signals={signals} showTrader />
             </section>
           </>
         }

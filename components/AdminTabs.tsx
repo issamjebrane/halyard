@@ -115,7 +115,7 @@ export default function AdminTabs(slots: Record<TabId, React.ReactNode>) {
             aria-labelledby={`tab-${t.id}`}
             hidden={!on}
             tabIndex={on ? 0 : -1}
-            className={on ? "space-y-6 focus:outline-none" : "hidden"}
+            className="space-y-6 focus:outline-none"
           >
             {slots[t.id]}
           </div>

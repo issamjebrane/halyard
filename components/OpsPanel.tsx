@@ -12,8 +12,11 @@ const EXEC_CLASS: Record<Execution["status"], string> = {
   error: "text-sell",
 };
 
-// Visibility into the automated pipeline: the MT5 engine heartbeat, Telegram
-// ingest, and what the copier executed. Pure presentational.
+// Visibility into the automated pipeline, read top-down as a health narrative:
+//   1. engines — the live MT5 heartbeats (the hero: is the copier alive right now?)
+//   2. pipeline — ingest freshness, execution mix, and current exposure at a glance
+//   3. recent — the last few things the copier actually did
+// Pure presentational; the only live parts are the EngineCard islands.
 export default function OpsPanel({
   engines,
   ingest,
@@ -23,25 +26,31 @@ export default function OpsPanel({
   ingest: { lastAt: string | null; last24h: number; total: number };
   exec: { counts: Partial<Record<Execution["status"], number>>; total: number; recent: Execution[] };
 }) {
+  const open = engines.reduce((a, e) => a + (e.open_positions ?? 0), 0);
+  const errors = exec.counts.error ?? 0;
+
   return (
     <section className="space-y-3">
       <h2 className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted">
         <span>operations</span>
         <InfoTip label="What operations shows">
-          The automated pipeline. <span className="text-foreground">engine</span> = the MT5 copier
-          heartbeat (it posts its status + broker price every few seconds — a stale dot means it
+          The automated pipeline. <span className="text-foreground">engines</span> = the MT5 copier
+          heartbeats (each posts its status + broker price every few seconds — a stale dot means it
           stopped). <span className="text-foreground">ingest</span> = signals read from Telegram.{" "}
           <span className="text-foreground">executions</span> = what the copier did (placed /
           skipped / error). The trust score never reads executions.
         </InfoTip>
       </h2>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        {/* engine heartbeats — one per copier instance (self-updating client islands) */}
+      {/* engines — live heartbeats (the hero row) */}
+      <div className="grid gap-3 sm:grid-cols-2">
         {(engines.length ? engines : [null]).map((e, i) => (
           <EngineCard key={e?.id ?? i} initial={e} />
         ))}
+      </div>
 
+      {/* pipeline — ingest · executions · exposure */}
+      <div className="grid gap-3 sm:grid-cols-3">
         {/* ingest */}
         <div className="border border-border bg-surface p-4">
           <div className="text-[10px] uppercase tracking-wider text-muted">ingest · telegram</div>
@@ -60,19 +69,38 @@ export default function OpsPanel({
           {exec.total === 0 ? (
             <p className="mt-3 font-mono text-xs text-muted">no executions yet.</p>
           ) : (
-            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs tabular-nums">
-              {(["placed", "breakeven", "closed", "skipped", "error"] as const).map((st) =>
-                exec.counts[st] ? (
-                  <span key={st} className={EXEC_CLASS[st]}>
-                    {exec.counts[st]} {st}
-                  </span>
-                ) : null,
-              )}
-            </div>
+            <>
+              <dl className="mt-3 space-y-2 font-mono text-xs">
+                <Row k="total"><span className="tabular-nums text-muted">{exec.total}</span></Row>
+              </dl>
+              <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 font-mono text-xs tabular-nums">
+                {(["placed", "breakeven", "closed", "skipped", "error"] as const).map((st) =>
+                  exec.counts[st] ? (
+                    <span key={st} className={EXEC_CLASS[st]}>
+                      {exec.counts[st]} {st}
+                    </span>
+                  ) : null,
+                )}
+              </div>
+            </>
           )}
+        </div>
+
+        {/* exposure — the at-a-glance "is anything wrong / live right now" tile */}
+        <div className="border border-border bg-surface p-4">
+          <div className="text-[10px] uppercase tracking-wider text-muted">exposure</div>
+          <dl className="mt-3 space-y-2 font-mono text-xs">
+            <Row k="open positions">
+              <span className={`tabular-nums ${open > 0 ? "text-foreground" : "text-muted"}`}>{open}</span>
+            </Row>
+            <Row k="errors">
+              <span className={`tabular-nums ${errors > 0 ? "text-sell" : "text-muted"}`}>{errors}</span>
+            </Row>
+          </dl>
         </div>
       </div>
 
+      {/* recent — what the copier last did */}
       {exec.recent.length > 0 && (
         <ul className="border border-border bg-surface font-mono text-xs">
           {exec.recent.map((e) => (
