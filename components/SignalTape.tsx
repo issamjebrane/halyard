@@ -29,7 +29,8 @@ export default function SignalTape({
     );
   }
   return (
-    <ul className="border border-border bg-surface font-mono text-xs">
+    <div className="overflow-x-auto border border-border">
+    <ul className="min-w-max bg-surface font-mono text-xs">
       {events.map((e) => {
         const k = KIND[e.kind] ?? { label: e.kind, tone: "text-muted" };
         return (
@@ -62,5 +63,6 @@ export default function SignalTape({
         );
       })}
     </ul>
+    </div>
   );
 }

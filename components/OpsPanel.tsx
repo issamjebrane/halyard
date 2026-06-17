@@ -49,8 +49,10 @@ export default function OpsPanel({
         ))}
       </div>
 
-      {/* pipeline — ingest · executions · exposure */}
-      <div className="grid gap-3 sm:grid-cols-3">
+      {/* pipeline — ingest · exposure (paired) · executions. on mobile the two
+          compact tiles share a 2-col row and executions spans full width so its
+          status pills never get squeezed; on sm+ it's an even 3-up. */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {/* ingest */}
         <div className="border border-border bg-surface p-4">
           <div className="text-[10px] uppercase tracking-wider text-muted">ingest · telegram</div>
@@ -63,8 +65,21 @@ export default function OpsPanel({
           </dl>
         </div>
 
-        {/* executions */}
+        {/* exposure — the at-a-glance "is anything wrong / live right now" tile */}
         <div className="border border-border bg-surface p-4">
+          <div className="text-[10px] uppercase tracking-wider text-muted">exposure</div>
+          <dl className="mt-3 space-y-2 font-mono text-xs">
+            <Row k="open">
+              <span className={`tabular-nums ${open > 0 ? "text-foreground" : "text-muted"}`}>{open}</span>
+            </Row>
+            <Row k="errors">
+              <span className={`tabular-nums ${errors > 0 ? "text-sell" : "text-muted"}`}>{errors}</span>
+            </Row>
+          </dl>
+        </div>
+
+        {/* executions */}
+        <div className="col-span-2 border border-border bg-surface p-4 sm:col-span-1">
           <div className="text-[10px] uppercase tracking-wider text-muted">executions · mt5</div>
           {exec.total === 0 ? (
             <p className="mt-3 font-mono text-xs text-muted">no executions yet.</p>
@@ -85,19 +100,6 @@ export default function OpsPanel({
             </>
           )}
         </div>
-
-        {/* exposure — the at-a-glance "is anything wrong / live right now" tile */}
-        <div className="border border-border bg-surface p-4">
-          <div className="text-[10px] uppercase tracking-wider text-muted">exposure</div>
-          <dl className="mt-3 space-y-2 font-mono text-xs">
-            <Row k="open positions">
-              <span className={`tabular-nums ${open > 0 ? "text-foreground" : "text-muted"}`}>{open}</span>
-            </Row>
-            <Row k="errors">
-              <span className={`tabular-nums ${errors > 0 ? "text-sell" : "text-muted"}`}>{errors}</span>
-            </Row>
-          </dl>
-        </div>
       </div>
 
       {/* recent — what the copier last did */}
@@ -106,9 +108,9 @@ export default function OpsPanel({
           {exec.recent.map((e) => (
             <li
               key={e.id}
-              className="flex items-center justify-between gap-4 border-b border-border/60 px-4 py-2 last:border-0"
+              className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-border/60 px-4 py-2 last:border-0"
             >
-              <span className="flex items-center gap-3">
+              <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
                 <span className="text-muted">#{e.signal_id}</span>
                 <span className={EXEC_CLASS[e.status]}>{e.status}</span>
                 {e.lots != null && <span className="tabular-nums text-muted">{fmt(e.lots)} lots</span>}
@@ -119,7 +121,7 @@ export default function OpsPanel({
                 )}
                 {e.detail && <span className="text-muted">· {e.detail}</span>}
               </span>
-              <TimeStamp iso={e.created_at} className="text-muted" />
+              <TimeStamp iso={e.created_at} className="shrink-0 text-muted" />
             </li>
           ))}
         </ul>

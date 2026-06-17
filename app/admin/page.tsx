@@ -168,12 +168,12 @@ export default async function AdminPage() {
                   {notifications.map((n) => (
                     <li
                       key={n.id}
-                      className="flex justify-between gap-4 border-b border-border/60 px-4 py-2 last:border-0"
+                      className="flex items-start justify-between gap-3 border-b border-border/60 px-4 py-2 last:border-0"
                     >
                       <span className={n.type === "signal_closed" ? "text-foreground" : "text-muted"}>
                         {n.message}
                       </span>
-                      <TimeStamp iso={n.created_at} className="text-muted" />
+                      <TimeStamp iso={n.created_at} className="shrink-0 text-muted" />
                     </li>
                   ))}
                 </ul>
