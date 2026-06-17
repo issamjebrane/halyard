@@ -120,7 +120,6 @@ export default async function AdminPage() {
       <AdminTabs
         overview={
           <>
-            <DailyNote />
             <TrustPanel trust={trust} />
             <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
               <Metric k="closed" v={String(metrics.total)} />
@@ -136,7 +135,12 @@ export default async function AdminPage() {
             </section>
           </>
         }
-        engines={<EngineCompare signals={signals} engines={engines} balance={balanceHistory} />}
+        engines={
+          <>
+            <EngineCompare signals={signals} engines={engines} balance={balanceHistory} />
+            <DailyNote />
+          </>
+        }
         curves={
           <>
             <section className="space-y-3">

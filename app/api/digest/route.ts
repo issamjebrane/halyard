@@ -1,12 +1,15 @@
 import { supabaseServer } from "@/lib/supabase/server";
-import { buildDailyDigest } from "@/lib/digest";
+import { buildAnalysis, type WindowKey } from "@/lib/digest";
+import { buildDeepAnalysis } from "@/lib/deepAnalysis";
 import { geminiEnabled } from "@/lib/gemini";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 30;
+export const maxDuration = 60;
 
-// GET /api/digest — a Gemini-written daily desk note over the last `hours` (default 24).
-// Auth: an admin session (dashboard button) OR ?key=<CRON_SECRET> (scheduled job).
+const WINDOWS: WindowKey[] = ["7d", "30d", "all"];
+
+// GET /api/digest?window=7d|30d|all — a Gemini-written performance analysis over
+// the chosen window. Auth: an admin session (dashboard) OR ?key=<CRON_SECRET> (cron).
 export async function GET(req: Request) {
   const url = new URL(req.url);
 
@@ -30,13 +33,19 @@ export async function GET(req: Request) {
     );
   }
 
-  const hours = Math.min(168, Math.max(1, Number(url.searchParams.get("hours")) || 24));
   try {
-    const { text, stats } = await buildDailyDigest(hours);
-    return Response.json({ ok: true, text, stats, generated_at: new Date().toISOString() });
+    // deep mode — multi-pass per-engine rentability + where-they-missed report (all trades)
+    if (url.searchParams.get("mode") === "deep") {
+      const { text, stats } = await buildDeepAnalysis();
+      return Response.json({ ok: true, mode: "deep", text, stats, generated_at: new Date().toISOString() });
+    }
+    const w = url.searchParams.get("window") as WindowKey | null;
+    const windowKey: WindowKey = w && WINDOWS.includes(w) ? w : "30d";
+    const { text, stats } = await buildAnalysis(windowKey);
+    return Response.json({ ok: true, window: windowKey, text, stats, generated_at: new Date().toISOString() });
   } catch (e) {
     return Response.json(
-      { ok: false, error: e instanceof Error ? e.message : "digest failed" },
+      { ok: false, error: e instanceof Error ? e.message : "analysis failed" },
       { status: 502 },
     );
   }
