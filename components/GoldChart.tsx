@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createChart,
   CandlestickSeries,
@@ -26,9 +26,25 @@ const toData = (c: ApiCandle): CandlestickData => ({
   close: c.close,
 });
 
-const ACCENT = "#d4a85a";
-const BUY = "#79b178";
-const SELL = "#c87171";
+// The chart lib needs concrete colour strings, so read them off the same CSS
+// variables the rest of the app themes with — that way the chart matches
+// whatever theme is active, and the MutationObserver below re-reads them when
+// the user toggles. Dark hex are the fallbacks.
+type Palette = { accent: string; buy: string; sell: string; border: string; muted: string };
+function readPalette(): Palette {
+  const fallback: Palette = { accent: "#d4a85a", buy: "#79b178", sell: "#c87171", border: "#1f1f23", muted: "#8a8a90" };
+  if (typeof window === "undefined") return fallback;
+  const cs = getComputedStyle(document.documentElement);
+  const get = (name: keyof Palette, varName: string) => cs.getPropertyValue(varName).trim() || fallback[name];
+  return {
+    accent: get("accent", "--accent"),
+    buy: get("buy", "--buy"),
+    sell: get("sell", "--sell"),
+    border: get("border", "--border"),
+    muted: get("muted", "--muted"),
+  };
+}
+
 const WS_URL = "wss://data-stream.binance.vision/ws/paxgusdt@kline_1m";
 
 export default function GoldChart({ signal }: { signal?: Signal | null }) {
@@ -37,35 +53,97 @@ export default function GoldChart({ signal }: { signal?: Signal | null }) {
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const linesRef = useRef<IPriceLine[]>([]);
   const levelsRef = useRef<number[]>([]);
+  const palRef = useRef<Palette | null>(null);
+  const signalRef = useRef<Signal | null>(null);
   const [last, setLast] = useState<number | null>(null);
   const [offline, setOffline] = useState(false);
+
+  // keep the latest signal reachable from the theme observer (which fires
+  // outside React's render) without re-running the chart-setup effect.
+  useEffect(() => {
+    signalRef.current = signal ?? null;
+  }, [signal]);
+
+  // (Re)draw the signal's price levels using the current palette + signal. Stable
+  // identity (reads refs only) so it can be called from both the signal effect
+  // and the theme observer.
+  const redrawLines = useCallback(() => {
+    const series = seriesRef.current;
+    const pal = palRef.current;
+    if (!series || !pal) return;
+
+    for (const l of linesRef.current) {
+      try {
+        series.removePriceLine(l);
+      } catch {
+        /* chart gone */
+      }
+    }
+    linesRef.current = [];
+
+    const sig = signalRef.current;
+    levelsRef.current = sig
+      ? [sig.entry_price, sig.stop_loss, sig.tp1, sig.tp2, sig.tp3].filter(
+          (v): v is number => v != null && Number.isFinite(v),
+        )
+      : [];
+    try {
+      series.applyOptions({}); // nudge the price scale to include the levels
+    } catch {
+      /* noop */
+    }
+    if (!sig) return;
+
+    const add = (price: number | null, color: string, title: string, solid = false) => {
+      if (price == null || !Number.isFinite(price)) return;
+      const line = series.createPriceLine({
+        price,
+        color,
+        // A hit level reads brighter/solid; an untouched one stays thin + dashed.
+        lineWidth: solid ? 2 : 1,
+        lineStyle: solid ? LineStyle.Solid : LineStyle.Dashed,
+        axisLabelVisible: true,
+        title,
+      });
+      linesRef.current.push(line);
+    };
+
+    add(sig.entry_price, pal.accent, `entry ${sig.direction}`, true);
+    add(sig.stop_loss, pal.sell, sig.sl_hit_at ? "SL ✓" : "SL", sig.sl_hit_at != null);
+    add(sig.tp1, pal.buy, sig.tp1_hit_at ? "TP1 ✓" : "TP1", sig.tp1_hit_at != null);
+    add(sig.tp2, pal.buy, sig.tp2_hit_at ? "TP2 ✓" : "TP2", sig.tp2_hit_at != null);
+    add(sig.tp3, pal.buy, sig.tp3_hit_at ? "TP3 ✓" : "TP3", sig.tp3_hit_at != null);
+  }, []);
 
   // Create the chart + start the realtime feed once.
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
 
+    const pal = readPalette();
+    palRef.current = pal;
+
     const chart = createChart(el, {
       autoSize: true,
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
-        textColor: "#8a8a90",
+        textColor: pal.muted,
         fontFamily: "ui-monospace, monospace",
         attributionLogo: false,
       },
       grid: {
-        vertLines: { color: "#1f1f23" },
-        horzLines: { color: "#1f1f23" },
+        vertLines: { color: pal.border },
+        horzLines: { color: pal.border },
       },
-      rightPriceScale: { borderColor: "#1f1f23" },
-      timeScale: { borderColor: "#1f1f23", timeVisible: true, secondsVisible: false },
+      rightPriceScale: { borderColor: pal.border },
+      timeScale: { borderColor: pal.border, timeVisible: true, secondsVisible: false },
     });
     const series = chart.addSeries(CandlestickSeries, {
-      upColor: BUY,
-      downColor: SELL,
+      upColor: pal.buy,
+      downColor: pal.sell,
       borderVisible: false,
-      wickUpColor: BUY,
-      wickDownColor: SELL,
+      wickUpColor: pal.buy,
+      wickDownColor: pal.sell,
       // Keep the signal's levels (SL/TP3 can be far) inside the visible scale.
       autoscaleInfoProvider: (orig: () => AutoscaleInfo | null) => {
         const res = orig();
@@ -81,6 +159,25 @@ export default function GoldChart({ signal }: { signal?: Signal | null }) {
     });
     chartRef.current = chart;
     seriesRef.current = series;
+
+    // Re-theme the chart live when <html data-theme> flips (toggle or OS change).
+    const themeObs = new MutationObserver(() => {
+      const p = readPalette();
+      palRef.current = p;
+      try {
+        chart.applyOptions({
+          layout: { textColor: p.muted },
+          grid: { vertLines: { color: p.border }, horzLines: { color: p.border } },
+          rightPriceScale: { borderColor: p.border },
+          timeScale: { borderColor: p.border },
+        });
+        series.applyOptions({ upColor: p.buy, downColor: p.sell, wickUpColor: p.buy, wickDownColor: p.sell });
+      } catch {
+        /* chart gone */
+      }
+      redrawLines();
+    });
+    themeObs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 
     let alive = true;
     let ws: WebSocket | null = null;
@@ -161,6 +258,7 @@ export default function GoldChart({ signal }: { signal?: Signal | null }) {
     return () => {
       alive = false;
       stopPoll();
+      themeObs.disconnect();
       try {
         ws?.close();
       } catch {
@@ -171,56 +269,14 @@ export default function GoldChart({ signal }: { signal?: Signal | null }) {
       seriesRef.current = null;
       linesRef.current = [];
     };
-  }, []);
+  }, [redrawLines]);
 
-  // Draw / redraw the signal's levels whenever the signal changes.
+  // Draw / redraw the signal's levels whenever the signal changes (the theme
+  // observer calls redrawLines too, so levels recolour on a theme switch).
   useEffect(() => {
-    const series = seriesRef.current;
-    if (!series) return;
-
-    for (const l of linesRef.current) {
-      try {
-        series.removePriceLine(l);
-      } catch {
-        /* chart gone */
-      }
-    }
-    linesRef.current = [];
-
-    levelsRef.current = signal
-      ? [signal.entry_price, signal.stop_loss, signal.tp1, signal.tp2, signal.tp3].filter(
-          (v): v is number => v != null && Number.isFinite(v),
-        )
-      : [];
-    try {
-      series.applyOptions({}); // nudge the price scale to include the levels
-    } catch {
-      /* noop */
-    }
-
-    if (!signal) return;
-
-    const add = (price: number | null, color: string, title: string, solid = false) => {
-      if (price == null || !Number.isFinite(price)) return;
-      const line = series.createPriceLine({
-        price,
-        color,
-        // A hit level reads brighter/solid; an untouched one stays thin + dashed.
-        lineWidth: solid ? 2 : 1,
-        lineStyle: solid ? LineStyle.Solid : LineStyle.Dashed,
-        axisLabelVisible: true,
-        title,
-      });
-      linesRef.current.push(line);
-    };
-
-    add(signal.entry_price, ACCENT, `entry ${signal.direction}`, true);
-    add(signal.stop_loss, SELL, signal.sl_hit_at ? "SL ✓" : "SL", signal.sl_hit_at != null);
-    add(signal.tp1, BUY, signal.tp1_hit_at ? "TP1 ✓" : "TP1", signal.tp1_hit_at != null);
-    add(signal.tp2, BUY, signal.tp2_hit_at ? "TP2 ✓" : "TP2", signal.tp2_hit_at != null);
-    add(signal.tp3, BUY, signal.tp3_hit_at ? "TP3 ✓" : "TP3", signal.tp3_hit_at != null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    redrawLines();
   }, [
+    redrawLines,
     signal?.id,
     signal?.direction,
     signal?.entry_price,

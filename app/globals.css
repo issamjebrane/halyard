@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
+/* dark is the default — covers no-JS, the pre-script paint, and data-theme="dark" */
 :root {
   --background: #0a0a0b;
   --foreground: #e8e8ea;
@@ -9,6 +10,20 @@
   --accent: #d4a85a;
   --buy: #79b178;
   --sell: #c87171;
+  color-scheme: dark;
+}
+
+/* light palette — darker accent/buy/sell so coloured data stays readable on white */
+:root[data-theme="light"] {
+  --background: #f6f6f3;
+  --foreground: #1b1b1d;
+  --surface: #ffffff;
+  --border: #e4e4de;
+  --muted: #66666b;
+  --accent: #785912;
+  --buy: #20683c;
+  --sell: #b5342a;
+  color-scheme: light;
 }
 
 @theme inline {

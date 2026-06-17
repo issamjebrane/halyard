@@ -76,7 +76,7 @@ export default function AdminTabs(slots: Record<TabId, React.ReactNode>) {
         role="tablist"
         aria-label="dashboard sections"
         onKeyDown={onKeyDown}
-        className="no-scrollbar sticky top-0 z-20 -mx-6 mb-6 flex gap-5 overflow-x-auto border-b border-border bg-background px-6 py-3 sm:gap-6"
+        className="no-scrollbar sticky top-0 z-20 -mx-4 mb-6 flex gap-5 overflow-x-auto border-b border-border bg-background px-4 py-3 sm:-mx-6 sm:gap-6 sm:px-6"
       >
         {TABS.map((t) => {
           const on = active === t.id;

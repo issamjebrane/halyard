@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/app/actions/auth";
 import type { Role } from "@/lib/types";
+import ThemeToggle from "./ThemeToggle";
 
 // App chrome (header + main). The admin areas get a wider column for the
 // dashboard's grids and the 15-column signals table; everything else stays at
@@ -23,11 +24,11 @@ export default function Shell({
   return (
     <>
       <header className="border-b border-border">
-        <div className={`mx-auto flex ${width} items-center justify-between px-6 py-4`}>
+        <div className={`mx-auto flex ${width} flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-4 sm:px-6`}>
           <Link href="/" className="font-mono text-sm tracking-wide">
             halyard
           </Link>
-          <nav className="flex items-center gap-5 text-sm text-muted">
+          <nav className="flex w-full flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted sm:w-auto sm:justify-end sm:gap-5">
             {profile ? (
               <>
                 {profile.role === "admin" ? (
@@ -59,10 +60,11 @@ export default function Shell({
                 enter
               </Link>
             )}
+            <ThemeToggle />
           </nav>
         </div>
       </header>
-      <main className={`mx-auto ${width} px-6 py-10`}>{children}</main>
+      <main className={`mx-auto ${width} px-4 py-10 sm:px-6`}>{children}</main>
     </>
   );
 }
